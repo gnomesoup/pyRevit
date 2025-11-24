@@ -215,17 +215,13 @@ def schedule_filter(schedule):
 
 
 def get_schedule_elements_and_params(schedule):
-    """
-    Get elements and parameters from a schedule.
-    Returns a tuple of (elements, parameters, field_mapping).
-    field_mapping is a dict {param_name: field} for schedule field overrides.
-    """
     schedule_def = schedule.Definition
 
     visible_fields = []
-    param_defs_dict = {}
+    param_defs_list = []
     field_mapping = {}
     non_storage_type = coreutils.get_enum_none(DB.StorageType)
+    processed_params = set()
 
     for field_id in schedule_def.GetFieldOrder():
         field = schedule_def.GetField(field_id)
@@ -264,14 +260,11 @@ def get_schedule_elements_and_params(schedule):
 
             if param and param.StorageType != non_storage_type:
                 def_name = param.Definition.Name
-                if def_name not in param_defs_dict:
+                if def_name not in processed_params:
                     param_data_type = get_parameter_data_type(param.Definition)
 
-                    # Get unit type ID from field format options if available
                     unit_type_id = None
-                    if param_data_type and DB.UnitUtils.IsMeasurableSpec(
-                        param_data_type
-                    ):
+                    if param_data_type and DB.UnitUtils.IsMeasurableSpec(param_data_type):
                         try:
                             fmt_opts = field.GetFormatOptions()
                             if fmt_opts:
@@ -279,7 +272,7 @@ def get_schedule_elements_and_params(schedule):
                         except Exception:
                             pass
 
-                    param_defs_dict[def_name] = ParamDef(
+                    param_defs_list.append(ParamDef(
                         name=def_name,
                         istype=False,
                         definition=param.Definition,
@@ -292,17 +285,15 @@ def get_schedule_elements_and_params(schedule):
                         storagetype=param.StorageType,
                         forge_type_id=param_data_type,
                         unit_type_id=unit_type_id,
-                    )
-                    # Store field mapping for this parameter
+                    ))
                     field_mapping[def_name] = field
+                    processed_params.add(def_name)
                 break
 
-    param_defs = sorted(param_defs_dict.values(), key=lambda pd: pd.name)
-
-    if not param_defs:
+    if not param_defs_list:
         raise ValueError("No valid parameters found in schedule")
 
-    return elements, param_defs, field_mapping
+    return elements, param_defs_list, field_mapping
 
 
 def select_parameters(src_elements):
