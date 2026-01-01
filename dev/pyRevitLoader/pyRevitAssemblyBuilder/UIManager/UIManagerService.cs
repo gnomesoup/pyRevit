@@ -567,6 +567,25 @@ namespace pyRevitAssemblyBuilder.UIManager
                                         ApplyHighlightToButton(subBtn, sub);
                                     }
                                 }
+                                else if (sub.Type == CommandComponentType.SmartButton)
+                                {
+                                    // SmartButtons in pulldowns inside stacks
+                                    var smartSubBtn = pdBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
+                                    if (smartSubBtn != null)
+                                    {
+                                        ApplyIconToPulldownSubButtonThemeAware(smartSubBtn, sub, origComponent);
+                                        smartSubBtn.ToolTip = BuildButtonTooltip(sub);
+                                        ApplyHighlightToButton(smartSubBtn, sub);
+                                        
+                                        // Execute __selfinit__ for SmartButton in stack pulldown
+                                        var shouldActivate = _smartButtonScriptInitializer.ExecuteSelfInit(sub, smartSubBtn);
+                                        if (!shouldActivate)
+                                        {
+                                            smartSubBtn.Enabled = false;
+                                            _logger.Debug($"SmartButton '{sub.DisplayName}' in stack pulldown deactivated by __selfinit__.");
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -620,6 +639,25 @@ namespace pyRevitAssemblyBuilder.UIManager
                         ApplyIconToPulldownSubButtonThemeAware(subBtn, sub, component);
                         subBtn.ToolTip = BuildButtonTooltip(sub);
                         ApplyHighlightToButton(subBtn, sub);
+                    }
+                }
+                else if (sub.Type == CommandComponentType.SmartButton)
+                {
+                    // SmartButtons in pulldowns are added as push buttons and execute __selfinit__
+                    var smartSubBtn = pdBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
+                    if (smartSubBtn != null)
+                    {
+                        ApplyIconToPulldownSubButtonThemeAware(smartSubBtn, sub, component);
+                        smartSubBtn.ToolTip = BuildButtonTooltip(sub);
+                        ApplyHighlightToButton(smartSubBtn, sub);
+                        
+                        // Execute __selfinit__ for SmartButton in pulldown
+                        var shouldActivate = _smartButtonScriptInitializer.ExecuteSelfInit(sub, smartSubBtn);
+                        if (!shouldActivate)
+                        {
+                            smartSubBtn.Enabled = false;
+                            _logger.Debug($"SmartButton '{sub.DisplayName}' in pulldown deactivated by __selfinit__.");
+                        }
                     }
                 }
                 else if (sub.Type == CommandComponentType.LinkButton)

@@ -29,6 +29,80 @@ namespace pyRevitExtensionParserTest
             return panelDir;
         }
 
+        /// <summary>
+        /// Test that SmartButton inside a pulldown menu is correctly parsed.
+        /// This matches the structure of Test Smart Button.smartbutton inside Bundle Tests.pulldown
+        /// in pyRevitDevTools.extension.
+        /// </summary>
+        [Test]
+        public void SmartButton_InPulldown_ParsedCorrectly()
+        {
+            var panelDir = CreateTabAndPanel();
+            // Create pulldown structure similar to:
+            // extensions/pyRevitDevTools.extension/pyRevitDev.tab/Debug.panel/Bundle Tests.pulldown/Test Smart Button.smartbutton
+            var pulldownDir = CreateSubDirectory("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown");
+            var smartButtonDir = CreateSubDirectory("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown/Test Smart Button.smartbutton");
+
+            // Create script matching the real Test Smart Button structure
+            CreateFile("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown/Test Smart Button.smartbutton/script.py", @"
+# Test Smart Button
+from pyrevit import script
+
+__context__ = 'zero-doc'
+__highlight__= 'updated'
+
+config = script.get_config()
+
+def __selfinit__(script_cmp, ui_button_cmp, __rvt__):
+    on_icon = script_cmp.get_bundle_file('on.png')
+    ui_button_cmp.set_icon(on_icon)
+
+if __name__ == '__main__':
+    print('Works...')
+");
+
+            // Create icons matching the real Test Smart Button structure
+            var minimalPng = CreateMinimalPng();
+            CreateFile("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown/Test Smart Button.smartbutton/icon.png", minimalPng);
+            CreateFile("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown/Test Smart Button.smartbutton/icon.dark.png", minimalPng);
+            CreateFile("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown/Test Smart Button.smartbutton/on.png", minimalPng);
+            CreateFile("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown/Test Smart Button.smartbutton/on.dark.png", minimalPng);
+            CreateFile("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown/Test Smart Button.smartbutton/off.png", minimalPng);
+            CreateFile("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown/Test Smart Button.smartbutton/off.dark.png", minimalPng);
+
+            // Add another button to the pulldown so it's not empty
+            var pushButtonDir = CreateSubDirectory("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown/Other Button.pushbutton");
+            CreateFile("Test.extension/Test.tab/TestPanel.panel/Bundle Tests.pulldown/Other Button.pushbutton/script.py", @"
+print('Other')
+");
+
+            var extensions = ParseInstalledExtensions(new[] { _extensionDir });
+            var extension = extensions.First();
+
+            var allComponents = GetAllComponentsFlat(extension);
+            
+            // Verify pulldown is parsed
+            var pulldown = allComponents.FirstOrDefault(c => c.Type == CommandComponentType.PullDown);
+            Assert.IsNotNull(pulldown, "Pulldown should be found");
+            Assert.AreEqual("Bundle Tests", pulldown.DisplayName);
+            
+            // Verify SmartButton inside pulldown is parsed
+            var smartButton = allComponents.FirstOrDefault(c => c.Type == CommandComponentType.SmartButton);
+            Assert.IsNotNull(smartButton, "SmartButton in pulldown should be found");
+            Assert.AreEqual("Test Smart Button", smartButton.DisplayName);
+            Assert.AreEqual(CommandComponentType.SmartButton, smartButton.Type);
+            
+            // Verify SmartButton is a child of the pulldown
+            Assert.IsNotNull(pulldown.Children, "Pulldown should have children");
+            var smartButtonInPulldown = pulldown.Children.FirstOrDefault(c => c.Type == CommandComponentType.SmartButton);
+            Assert.IsNotNull(smartButtonInPulldown, "SmartButton should be a child of pulldown");
+            
+            // Verify on/off icons are detected
+            Assert.IsTrue(smartButton.HasToggleIcons, "SmartButton should have toggle icons");
+            Assert.IsNotNull(smartButton.OnIconPath, "OnIconPath should not be null");
+            Assert.IsNotNull(smartButton.OffIconPath, "OffIconPath should not be null");
+        }
+
         [Test]
         public void SmartButton_ParsedAsSmartButtonType()
         {
