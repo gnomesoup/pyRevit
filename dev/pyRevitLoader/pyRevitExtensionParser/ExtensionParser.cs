@@ -216,7 +216,7 @@ namespace pyRevitExtensionParser
                 Titles = parsedBundle?.Titles,
                 Tooltips = parsedBundle?.Tooltips,
                 MinRevitVersion = parsedBundle?.MinRevitVersion,
-                Context = parsedBundle?.Context,
+                Context = parsedBundle?.GetFormattedContext(),
                 Engine = parsedBundle?.Engine,
                 Config = extConfig
             };
@@ -538,12 +538,21 @@ namespace pyRevitExtensionParser
 
                 // First, get values from Python script
                 string title = null, author = null, doc = null;
+                string scriptContext = null, scriptHelpUrl = null, scriptHighlight = null;
                 Dictionary<string, string> scriptLocalizedTitles = null;
                 Dictionary<string, string> scriptLocalizedTooltips = null;
                 
                 if (scriptPath != null && scriptPath.EndsWith(".py", StringComparison.OrdinalIgnoreCase))
                 {
-                    (title, scriptLocalizedTitles, author, doc, scriptLocalizedTooltips) = ReadPythonScriptConstants(scriptPath);
+                    var scriptConstants = ReadPythonScriptConstants(scriptPath);
+                    title = scriptConstants.Title;
+                    scriptLocalizedTitles = scriptConstants.LocalizedTitles;
+                    author = scriptConstants.Author;
+                    doc = scriptConstants.Doc;
+                    scriptLocalizedTooltips = scriptConstants.LocalizedTooltips;
+                    scriptContext = scriptConstants.Context;
+                    scriptHelpUrl = scriptConstants.HelpUrl;
+                    scriptHighlight = scriptConstants.Highlight;
                 }
 
                 // Override script values with bundle values (bundle takes precedence)
@@ -589,10 +598,43 @@ namespace pyRevitExtensionParser
                 doc = SubstituteTemplates(doc, mergedTemplates);
                 author = SubstituteTemplates(author, mergedTemplates);
                 var hyperlink = SubstituteTemplates(bundleInComponent?.Hyperlink, mergedTemplates);
+                scriptHelpUrl = SubstituteTemplates(scriptHelpUrl, mergedTemplates);
                 
                 // Apply template substitution to localized values
                 finalLocalizedTitles = SubstituteTemplatesInDict(finalLocalizedTitles, mergedTemplates);
                 finalLocalizedTooltips = SubstituteTemplatesInDict(finalLocalizedTooltips, mergedTemplates);
+
+                // Determine final context: bundle takes precedence over script
+                // bundleInComponent?.GetFormattedContext() returns "(zero-doc)" when no context in bundle
+                // so we need to check if there's actually a context defined in the bundle
+                string finalContext;
+                var bundleContext = bundleInComponent?.GetFormattedContext();
+                if (bundleInComponent != null && 
+                    (bundleInComponent.ContextItems?.Count > 0 || 
+                     bundleInComponent.ContextRules?.Count > 0 ||
+                     !string.IsNullOrEmpty(bundleInComponent.Context)))
+                {
+                    // Bundle has explicit context defined
+                    finalContext = bundleContext;
+                }
+                else if (!string.IsNullOrEmpty(scriptContext))
+                {
+                    // Use script context
+                    finalContext = scriptContext;
+                }
+                else
+                {
+                    // Default from bundle (zero-doc)
+                    finalContext = bundleContext;
+                }
+
+                // Determine final highlight: bundle takes precedence over script
+                string finalHighlight = !string.IsNullOrEmpty(bundleInComponent?.Highlight) 
+                    ? bundleInComponent.Highlight 
+                    : scriptHighlight;
+
+                // Determine final help URL: bundle hyperlink takes precedence over script helpurl
+                string finalHyperlink = !string.IsNullOrEmpty(hyperlink) ? hyperlink : scriptHelpUrl;
 
                 components.Add(new ParsedComponent
                 {
@@ -609,9 +651,9 @@ namespace pyRevitExtensionParser
                     LayoutItemTitles = bundleInComponent?.LayoutItemTitles,
                     Title = title,
                     Author = author,
-                    Context = bundleInComponent?.Context,
-                    Hyperlink = hyperlink,
-                    Highlight = bundleInComponent?.Highlight,
+                    Context = finalContext,
+                    Hyperlink = finalHyperlink,
+                    Highlight = finalHighlight,
                     PanelBackground = bundleInComponent?.PanelBackground,
                     TitleBackground = bundleInComponent?.TitleBackground,
                     SlideoutBackground = bundleInComponent?.SlideoutBackground,
@@ -667,61 +709,176 @@ namespace pyRevitExtensionParser
             return sb.ToString();
         }
 
-        // Cache Python script constant parsing to avoid re-reading files
-        private static Dictionary<string, (string title, Dictionary<string, string> localizedTitles, string author, string doc, Dictionary<string, string> localizedTooltips)> _pythonScriptCache = 
-            new Dictionary<string, (string title, Dictionary<string, string> localizedTitles, string author, string doc, Dictionary<string, string> localizedTooltips)>();
+        /// <summary>
+        /// Struct to hold all Python script constants
+        /// </summary>
+        private struct PythonScriptConstants
+        {
+            public string Title;
+            public Dictionary<string, string> LocalizedTitles;
+            public string Author;
+            public string Doc;
+            public Dictionary<string, string> LocalizedTooltips;
+            public string HelpUrl;
+            public string Context;
+            public List<string> ContextItems;
+            public string Highlight;
+        }
 
-        private static (string title, Dictionary<string, string> localizedTitles, string author, string doc, Dictionary<string, string> localizedTooltips) ReadPythonScriptConstants(string scriptPath)
+        // Cache Python script constant parsing to avoid re-reading files
+        private static Dictionary<string, PythonScriptConstants> _pythonScriptCache = 
+            new Dictionary<string, PythonScriptConstants>();
+
+        private static PythonScriptConstants ReadPythonScriptConstants(string scriptPath)
         {
             // Check cache first
             if (_pythonScriptCache.TryGetValue(scriptPath, out var cached))
                 return cached;
                 
-            string title = null, author = null, doc = null;
-            Dictionary<string, string> localizedTitles = null;
-            Dictionary<string, string> localizedTooltips = null;
+            var result = new PythonScriptConstants();
 
             foreach (var line in File.ReadLines(scriptPath))
             {
-                if (line.StartsWith("__title__"))
+                var trimmedLine = line.TrimStart();
+                
+                if (trimmedLine.StartsWith("__title__"))
                 {
                     // Check if it's a dictionary
-                    var dictValue = ExtractPythonDictionary(line);
+                    var dictValue = ExtractPythonDictionary(trimmedLine);
                     if (dictValue != null)
                     {
-                        localizedTitles = dictValue;
+                        result.LocalizedTitles = dictValue;
                         // Get default locale value for backward compatibility
-                        title = GetLocalizedValue(localizedTitles);
+                        result.Title = GetLocalizedValue(result.LocalizedTitles);
                     }
                     else
                     {
-                        title = ExtractPythonConstantValue(line);
+                        result.Title = ExtractPythonConstantValue(trimmedLine);
                     }
                 }
-                else if (line.StartsWith("__author__"))
+                else if (trimmedLine.StartsWith("__authors__"))
                 {
-                    author = ExtractPythonConstantValue(line);
+                    // __authors__ is a list, join with newline like Python does
+                    var listValue = ExtractPythonList(trimmedLine);
+                    if (listValue != null && listValue.Count > 0)
+                    {
+                        result.Author = string.Join("\n", listValue);
+                    }
                 }
-                else if (line.StartsWith("__doc__"))
+                else if (trimmedLine.StartsWith("__author__"))
+                {
+                    // Only use __author__ if __authors__ wasn't found
+                    if (string.IsNullOrEmpty(result.Author))
+                    {
+                        result.Author = ExtractPythonConstantValue(trimmedLine);
+                    }
+                }
+                else if (trimmedLine.StartsWith("__doc__"))
                 {
                     // Check if it's a dictionary for multi-language tooltip
-                    var dictValue = ExtractPythonDictionary(line);
+                    var dictValue = ExtractPythonDictionary(trimmedLine);
                     if (dictValue != null)
                     {
-                        localizedTooltips = dictValue;
+                        result.LocalizedTooltips = dictValue;
                         // Get default locale value for backward compatibility
-                        doc = GetLocalizedValue(localizedTooltips);
+                        result.Doc = GetLocalizedValue(result.LocalizedTooltips);
                     }
                     else
                     {
-                        doc = ExtractPythonConstantValue(line);
+                        result.Doc = ExtractPythonConstantValue(trimmedLine);
                     }
+                }
+                else if (trimmedLine.StartsWith("__helpurl__"))
+                {
+                    result.HelpUrl = ExtractPythonConstantValue(trimmedLine);
+                }
+                else if (trimmedLine.StartsWith("__context__"))
+                {
+                    // Check if it's a list
+                    var listValue = ExtractPythonList(trimmedLine);
+                    if (listValue != null && listValue.Count > 0)
+                    {
+                        result.ContextItems = listValue;
+                        // Format as context string (ALL must match)
+                        result.Context = "(" + string.Join("&", listValue) + ")";
+                    }
+                    else
+                    {
+                        // Simple string context
+                        var contextValue = ExtractPythonConstantValue(trimmedLine);
+                        if (!string.IsNullOrEmpty(contextValue))
+                        {
+                            result.Context = contextValue.StartsWith("(") ? contextValue : "(" + contextValue + ")";
+                        }
+                    }
+                }
+                else if (trimmedLine.StartsWith("__highlight__"))
+                {
+                    result.Highlight = ExtractPythonConstantValue(trimmedLine);
                 }
             }
 
-            var result = (title, localizedTitles, author, doc, localizedTooltips);
             _pythonScriptCache[scriptPath] = result;
             return result;
+        }
+
+        /// <summary>
+        /// Extracts a Python list from a line like: __context__ = ['OST_Walls', 'OST_TextNotes']
+        /// </summary>
+        private static List<string> ExtractPythonList(string line)
+        {
+            var parts = line.Split(new[] { '=' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 2)
+            {
+                var value = parts[1].Trim();
+                // Check if it's a list literal
+                if (value.StartsWith("[") && value.EndsWith("]"))
+                {
+                    var items = new List<string>();
+                    // Remove outer brackets
+                    value = value.Substring(1, value.Length - 2);
+                    
+                    // Split by comma, handling quoted strings
+                    var currentItem = "";
+                    var inQuote = false;
+                    var quoteChar = '\0';
+                    
+                    for (int i = 0; i < value.Length; i++)
+                    {
+                        var ch = value[i];
+                        
+                        if (!inQuote && (ch == '"' || ch == '\''))
+                        {
+                            inQuote = true;
+                            quoteChar = ch;
+                        }
+                        else if (inQuote && ch == quoteChar && (i == 0 || value[i - 1] != '\\'))
+                        {
+                            inQuote = false;
+                            quoteChar = '\0';
+                        }
+                        else if (!inQuote && ch == ',')
+                        {
+                            var trimmed = currentItem.Trim().Trim('\'', '"');
+                            if (!string.IsNullOrWhiteSpace(trimmed))
+                                items.Add(trimmed);
+                            currentItem = "";
+                        }
+                        else if (!inQuote || (ch != '"' && ch != '\''))
+                        {
+                            currentItem += ch;
+                        }
+                    }
+                    
+                    // Add last item
+                    var lastTrimmed = currentItem.Trim().Trim('\'', '"');
+                    if (!string.IsNullOrWhiteSpace(lastTrimmed))
+                        items.Add(lastTrimmed);
+                    
+                    return items.Count > 0 ? items : null;
+                }
+            }
+            return null;
         }
 
         private static string ExtractPythonConstantValue(string line)

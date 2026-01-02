@@ -140,7 +140,7 @@ namespace pyRevitExtensionParserTest
         {
             // Check if extension-level bundle.yaml defines author
             var extensionBundlePath = Path.Combine(_extensionPath, "bundle.yaml");
-            string expectedAuthor = null;
+            string? expectedAuthor = null;
             
             if (File.Exists(extensionBundlePath))
             {

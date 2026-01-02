@@ -3,6 +3,71 @@ using System.Collections.Generic;
 namespace pyRevitExtensionParser
 {
     /// <summary>
+    /// Represents a context rule for complex command availability conditions.
+    /// </summary>
+    /// <remarks>
+    /// <para>Context rules support the following types:</para>
+    /// <list type="bullet">
+    /// <item><description>any - Match if ANY of the items match (OR logic)</description></item>
+    /// <item><description>all - Match if ALL items match (AND logic)</description></item>
+    /// <item><description>exact - Match if selection exactly matches the items</description></item>
+    /// <item><description>not_any - Match if NONE of the items match</description></item>
+    /// <item><description>not_all - Match if NOT ALL items match</description></item>
+    /// <item><description>not_exact - Match if selection does NOT exactly match</description></item>
+    /// </list>
+    /// </remarks>
+    public class ContextRule
+    {
+        /// <summary>
+        /// The type of rule: any, all, exact, not_any, not_all, not_exact
+        /// </summary>
+        public string RuleType { get; set; }
+        
+        /// <summary>
+        /// The list of items (category names, view types, etc.) for this rule
+        /// </summary>
+        public List<string> Items { get; set; } = new List<string>();
+        
+        /// <summary>
+        /// Whether this is a NOT rule (inverted logic)
+        /// </summary>
+        public bool IsNot => RuleType?.StartsWith("not_") == true;
+        
+        /// <summary>
+        /// Gets the separator character for this rule type
+        /// </summary>
+        public char Separator
+        {
+            get
+            {
+                var baseType = IsNot ? RuleType.Substring(4) : RuleType;
+                switch (baseType?.ToLowerInvariant())
+                {
+                    case "any": return '|';
+                    case "exact": return ';';
+                    case "all":
+                    default: return '&';
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Converts this rule to the formatted string for runtime consumption.
+        /// </summary>
+        /// <returns>Formatted rule string like "(item1&amp;item2)" or "!(item1|item2)"</returns>
+        public string ToFormattedString()
+        {
+            if (Items == null || Items.Count == 0)
+                return string.Empty;
+                
+            var joined = string.Join(Separator.ToString(), Items);
+            var formatted = "(" + joined + ")";
+            
+            return IsNot ? "!" + formatted : formatted;
+        }
+    }
+    
+    /// <summary>
     /// Represents a parsed pyRevit bundle configuration containing all metadata,
     /// layout information, and engine settings for a command or component.
     /// </summary>
@@ -104,16 +169,109 @@ namespace pyRevitExtensionParser
         /// Gets or sets the context filter determining when this bundle is available.
         /// </summary>
         /// <remarks>
-        /// <para>Common values:</para>
+        /// <para>Common values (as string or list items):</para>
         /// <list type="bullet">
         /// <item><description>"zero-doc" - Available when no document is open</description></item>
-        /// <item><description>"no-active-doc" - Available when no active document</description></item>
-        /// <item><description>"project" - Available in project documents</description></item>
-        /// <item><description>"family" - Available in family editor</description></item>
-        /// <item><description>Custom availability class name</description></item>
+        /// <item><description>"selection" - Available when elements are selected</description></item>
+        /// <item><description>"doc-project" - Available in project documents</description></item>
+        /// <item><description>"doc-family" - Available in family editor</description></item>
+        /// <item><description>"OST_Walls", "OST_Doors", etc. - Built-in category names</description></item>
+        /// <item><description>"active-floor-plan", "active-3d-view", etc. - Active view type conditions</description></item>
+        /// </list>
+        /// <para>The context can be specified as:</para>
+        /// <list type="bullet">
+        /// <item><description>A single string value</description></item>
+        /// <item><description>A list of category/condition values (all must match)</description></item>
+        /// <item><description>A dictionary with any/all/exact/not_ keys for complex rules</description></item>
         /// </list>
         /// </remarks>
+        /// <example>
+        /// Simple string:
+        /// <code>context: zero-doc</code>
+        /// 
+        /// List (all must match):
+        /// <code>
+        /// context:
+        ///   - OST_Walls
+        ///   - OST_TextNotes
+        /// </code>
+        /// 
+        /// Complex rules:
+        /// <code>
+        /// context:
+        ///   any:
+        ///     - OST_Walls
+        ///     - OST_Doors
+        /// </code>
+        /// </example>
         public string Context { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the list of context items when context is specified as a YAML list.
+        /// </summary>
+        /// <remarks>
+        /// When context is specified as a list in bundle.yaml, items are stored here.
+        /// Use <see cref="GetFormattedContext"/> to get the runtime-formatted context string.
+        /// </remarks>
+        public List<string> ContextItems { get; set; } = new List<string>();
+        
+        /// <summary>
+        /// Gets or sets context rules for complex context specifications using any/all/exact/not_ keys.
+        /// </summary>
+        /// <remarks>
+        /// Stores parsed context rules when using dictionary format:
+        /// <code>
+        /// context:
+        ///   any:
+        ///     - OST_Walls
+        ///     - OST_Doors
+        ///   not_all:
+        ///     - OST_TextNotes
+        /// </code>
+        /// </remarks>
+        public List<ContextRule> ContextRules { get; set; } = new List<ContextRule>();
+        
+        /// <summary>
+        /// Gets the formatted context string for runtime consumption.
+        /// </summary>
+        /// <returns>
+        /// A context string formatted according to pyRevit runtime expectations:
+        /// - "(item1&amp;item2)" for ALL conditions (list format)
+        /// - "(item1|item2)" for ANY conditions
+        /// - "(item1;item2)" for EXACT conditions
+        /// - "!(rule)" for NOT conditions
+        /// </returns>
+        public string GetFormattedContext()
+        {
+            // If we have context rules, format them
+            if (ContextRules != null && ContextRules.Count > 0)
+            {
+                var formattedRules = new List<string>();
+                foreach (var rule in ContextRules)
+                {
+                    formattedRules.Add(rule.ToFormattedString());
+                }
+                // Join multiple rules with & (ALL)
+                return string.Join("&", formattedRules);
+            }
+            
+            // If we have context items (list format), join with & (ALL must match)
+            if (ContextItems != null && ContextItems.Count > 0)
+            {
+                return "(" + string.Join("&", ContextItems) + ")";
+            }
+            
+            // Simple string context - wrap in parentheses if not already
+            if (!string.IsNullOrEmpty(Context))
+            {
+                if (Context.StartsWith("(") && Context.EndsWith(")"))
+                    return Context;
+                return "(" + Context + ")";
+            }
+            
+            // Default: zero-doc (always available)
+            return "(zero-doc)";
+        }
 
         /// <summary>
         /// Gets or sets the URL hyperlink associated with this bundle.

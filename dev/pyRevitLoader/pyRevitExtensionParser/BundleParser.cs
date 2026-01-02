@@ -295,7 +295,14 @@ namespace pyRevitExtensionParser
                     parsed.MinRevitVersion = value;
                     break;
                 case "context":
-                    parsed.Context = value;
+                    // Context can be a simple string or a list
+                    // If there's a value on this line, it's a simple string
+                    // If the line is just "context:", the items follow as a list
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        parsed.Context = value;
+                    }
+                    // else: context items will be parsed as second-level items
                     break;
                 case "hyperlink":
                     parsed.Hyperlink = StripQuotes(value);
@@ -414,6 +421,22 @@ namespace pyRevitExtensionParser
                 ParseModuleItem(line, parsed);
                 return;
             }
+            
+            // Context list items or context rules
+            if (state.CurrentSection == "context")
+            {
+                if (line.StartsWith("-"))
+                {
+                    // Simple list item: - OST_Walls
+                    ParseContextListItem(line, parsed);
+                }
+                else if (line.Contains(":"))
+                {
+                    // Context rule: any:, all:, exact:, not_any:, etc.
+                    ParseContextRule(line, parsed, state);
+                }
+                return;
+            }
 
             // Member list items for ComboBox
             if (state.CurrentSection == "members")
@@ -521,6 +544,97 @@ namespace pyRevitExtensionParser
             }
             
             parsed.Modules.Add(moduleName);
+        }
+
+        /// <summary>
+        /// Parses a context list item (e.g., "- OST_Walls").
+        /// </summary>
+        /// <remarks>
+        /// Context can be specified as a simple list:
+        /// <code>
+        /// context:
+        ///   - OST_Walls
+        ///   - OST_TextNotes
+        /// </code>
+        /// This is equivalent to requiring ALL categories to be present.
+        /// </remarks>
+        private static void ParseContextListItem(string line, ParsedBundle parsed)
+        {
+            var contextItem = line.Substring(1).Trim();
+            
+            // Strip quotes if present
+            if ((contextItem.StartsWith("\"") && contextItem.EndsWith("\"")) ||
+                (contextItem.StartsWith("'") && contextItem.EndsWith("'")))
+            {
+                contextItem = contextItem.Substring(1, contextItem.Length - 2);
+            }
+            
+            if (!string.IsNullOrEmpty(contextItem))
+            {
+                parsed.ContextItems.Add(contextItem);
+            }
+        }
+
+        /// <summary>
+        /// Parses a context rule definition (e.g., "any:", "all:", "not_any:").
+        /// </summary>
+        /// <remarks>
+        /// Context rules allow complex availability conditions:
+        /// <code>
+        /// context:
+        ///   any:
+        ///     - OST_Walls
+        ///     - OST_Doors
+        ///   not_all:
+        ///     - OST_TextNotes
+        /// </code>
+        /// </remarks>
+        private static void ParseContextRule(string line, ParsedBundle parsed, ParserState state)
+        {
+            var colonIndex = line.IndexOf(':');
+            var ruleType = line.Substring(0, colonIndex).Trim().ToLowerInvariant();
+            var value = line.Substring(colonIndex + 1).Trim();
+            
+            // Supported rule types: any, all, exact, not_any, not_all, not_exact
+            if (ruleType == "any" || ruleType == "all" || ruleType == "exact" ||
+                ruleType == "not_any" || ruleType == "not_all" || ruleType == "not_exact")
+            {
+                var rule = new ContextRule { RuleType = ruleType };
+                parsed.ContextRules.Add(rule);
+                state.CurrentContextRule = rule;
+                
+                // If there's a value on the same line, it might be a single item
+                if (!string.IsNullOrEmpty(value))
+                {
+                    rule.Items.Add(StripQuotes(value));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Parses a context rule item (third level, e.g., "    - OST_Walls" under "  any:").
+        /// </summary>
+        private static void ParseContextRuleItem(string line, ParserState state)
+        {
+            if (state.CurrentContextRule == null)
+                return;
+                
+            if (line.StartsWith("-"))
+            {
+                var item = line.Substring(1).Trim();
+                
+                // Strip quotes if present
+                if ((item.StartsWith("\"") && item.EndsWith("\"")) ||
+                    (item.StartsWith("'") && item.EndsWith("'")))
+                {
+                    item = item.Substring(1, item.Length - 2);
+                }
+                
+                if (!string.IsNullOrEmpty(item))
+                {
+                    state.CurrentContextRule.Items.Add(item);
+                }
+            }
         }
 
         /// <summary>
@@ -634,10 +748,17 @@ namespace pyRevitExtensionParser
 
         /// <summary>
         /// Parses third-level items (indented with 4 spaces or 2 tabs).
-        /// Used for member properties in ComboBox.
+        /// Used for member properties in ComboBox and context rule items.
         /// </summary>
         private static void ParseThirdLevelItem(string line, ParsedBundle parsed, ParserState state)
         {
+            // Context rule items (items under any:, all:, exact:, etc.)
+            if (state.CurrentSection == "context" && state.CurrentContextRule != null)
+            {
+                ParseContextRuleItem(line, state);
+                return;
+            }
+            
             // Member properties for ComboBox
             if (state.CurrentSection == "members" && state.CurrentMember != null && line.Contains(":"))
             {
@@ -820,6 +941,11 @@ namespace pyRevitExtensionParser
             /// Current ComboBox member being parsed (for .combobox bundles)
             /// </summary>
             public ComboBoxMember CurrentMember { get; set; }
+            
+            /// <summary>
+            /// Current context rule being parsed (for complex context specifications)
+            /// </summary>
+            public ContextRule CurrentContextRule { get; set; }
 
             public void ResetMultiline()
             {
