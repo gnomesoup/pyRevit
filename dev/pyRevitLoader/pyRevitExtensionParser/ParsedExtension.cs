@@ -144,27 +144,64 @@ namespace pyRevitExtensionParser
         
         /// <summary>
         /// Collects all command components from this extension (cached after first call).
+        /// Builds control IDs for each component based on hierarchy.
         /// </summary>
         public IEnumerable<ParsedComponent> CollectCommandComponents()
         {
             if (_cachedCommandComponents == null)
             {
                 _cachedCommandComponents = new List<ParsedComponent>();
-                CollectInto(_cachedCommandComponents, this.Children);
+                // Start with no parent control ID - tabs will be the first level
+                CollectInto(_cachedCommandComponents, this.Children, null);
             }
             return _cachedCommandComponents;
         }
 
         // Non-allocating collection method - adds directly to list instead of yielding
-        private void CollectInto(List<ParsedComponent> result, IEnumerable<ParsedComponent> list)
+        // parentControlId tracks the control ID hierarchy for building correct IDs
+        private void CollectInto(List<ParsedComponent> result, IEnumerable<ParsedComponent> list, string parentControlId)
         {
             if (list == null) return;
 
             foreach (var comp in list)
             {
+                // Build control ID for this component
+                // Format matches Python: 
+                // - For tabs (no parent): "CustomCtrl_%CustomCtrl_%{name}"
+                // - For other components: "{parentId}%{name}"
+                // - For groups inside groups (like pulldowns inside panels): need special handling
+                // IMPORTANT: Use DisplayName (original folder name with spaces) for control IDs,
+                // NOT Name (which has spaces stripped). Revit uses the actual folder names.
+                string displayName = comp.DisplayName ?? comp.Name;
+                
+                string currentControlId;
+                if (string.IsNullOrEmpty(parentControlId))
+                {
+                    // Top-level (tab): "CustomCtrl_%CustomCtrl_%{name}"
+                    currentControlId = $"CustomCtrl_%CustomCtrl_%{displayName}";
+                }
+                else if (comp.Type == CommandComponentType.PullDown || 
+                         comp.Type == CommandComponentType.SplitButton ||
+                         comp.Type == CommandComponentType.SplitPushButton ||
+                         comp.Type == CommandComponentType.Stack)
+                {
+                    // Command groups inside containers need to deepen the hierarchy
+                    // This matches Python's GenericUICommandGroup.control_id behavior
+                    var deepenedParent = parentControlId.Replace("_%CustomCtrl", "_%CustomCtrl_%CustomCtrl");
+                    currentControlId = $"{deepenedParent}%{displayName}";
+                }
+                else
+                {
+                    // Normal child: append to parent
+                    currentControlId = $"{parentControlId}%{displayName}";
+                }
+                
+                // Set the control ID on the component
+                comp.ControlId = currentControlId;
+
                 if (comp.Children != null)
                 {
-                    CollectInto(result, comp.Children);
+                    CollectInto(result, comp.Children, currentControlId);
                 }
 
                 // HashSet.Contains is O(1) vs array Contains which is O(n)

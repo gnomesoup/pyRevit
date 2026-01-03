@@ -72,7 +72,8 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
                 string tooltip = cmd.Tooltip ?? string.Empty;
                 string bundle = string.IsNullOrEmpty(scriptDir) ? string.Empty : Path.GetFileName(scriptDir);
                 string extName = extension.Name;
-                string ctrlId = $"CustomCtrl_%{extName}%{bundle}%{cmd.Name}";
+                // Use the properly-built control ID from the component hierarchy
+                string ctrlId = cmd.ControlId ?? $"CustomCtrl_%CustomCtrl_%{extName}%{bundle}%{cmd.Name}";
                 
                 // Build engine configs based on bundle configuration or script type
                 string engineCfgs = CommandGenerationUtilities.BuildEngineConfigs(cmd, scriptPath);
@@ -279,6 +280,9 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
             // Build engine configs based on bundle configuration or script type
             string engineCfgs = CommandGenerationUtilities.BuildEngineConfigs(cmd, scriptPath);
             
+            // Use the properly-built control ID from the component hierarchy
+            string ctrlId = cmd.ControlId ?? $"CustomCtrl_%CustomCtrl_%{extension.Name ?? string.Empty}%{bundleName}%{cmd.Name ?? string.Empty}";
+            
             string[] args = {
                 scriptPath,
                 configPath,
@@ -290,7 +294,7 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
                 bundleName,
                 extension.Name ?? string.Empty,
                 cmd.UniqueId ?? string.Empty,
-                $"CustomCtrl_%{extension.Name ?? string.Empty}%{bundleName}%{cmd.Name ?? string.Empty}",
+                ctrlId,
                 context,
                 engineCfgs
             };

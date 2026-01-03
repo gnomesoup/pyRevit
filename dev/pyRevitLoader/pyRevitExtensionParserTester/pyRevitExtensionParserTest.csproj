@@ -51,6 +51,7 @@
     <Compile Include="ComboBoxTests.cs" />
     <Compile Include="SmartButtonTests.cs" />
     <Compile Include="TemplateInheritanceTests.cs" />
+    <Compile Include="ControlIdTests.cs" />
   </ItemGroup>
 
   <ItemGroup>

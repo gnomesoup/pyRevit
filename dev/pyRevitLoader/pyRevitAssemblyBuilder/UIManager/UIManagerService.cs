@@ -368,7 +368,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     BuildStack(component, parentPanel, assemblyInfo);
                     break;
                 case CommandComponentType.PanelButton:
-                    if (!ItemExistsInPanel(parentPanel, component.Name))
+                    if (!ItemExistsInPanel(parentPanel, component.DisplayName))
                     {
                         var panelBtnData = CreatePushButton(component, assemblyInfo);
                         var panelBtn = parentPanel.AddItem(panelBtnData) as PushButton;
@@ -386,7 +386,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                 case CommandComponentType.UrlButton:
                 case CommandComponentType.InvokeButton:
                 case CommandComponentType.ContentButton:
-                    if (!ItemExistsInPanel(parentPanel, component.Name))
+                    if (!ItemExistsInPanel(parentPanel, component.DisplayName))
                     {
                         var pbData = CreatePushButton(component, assemblyInfo);
                         var btn = parentPanel.AddItem(pbData) as PushButton;
@@ -401,7 +401,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     break;
                     
                 case CommandComponentType.SmartButton:
-                    if (!ItemExistsInPanel(parentPanel, component.Name))
+                    if (!ItemExistsInPanel(parentPanel, component.DisplayName))
                     {
                         var sbData = CreatePushButton(component, assemblyInfo);
                         var smartBtn = parentPanel.AddItem(sbData) as PushButton;
@@ -426,7 +426,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     }
                     break;
                 case CommandComponentType.LinkButton:
-                    if (!ItemExistsInPanel(parentPanel, component.Name))
+                    if (!ItemExistsInPanel(parentPanel, component.DisplayName))
                     {
                         var linkData = CreateLinkButton(component);
                         if (linkData != null)
@@ -444,7 +444,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     break;
 
                 case CommandComponentType.PullDown:
-                    if (!ItemExistsInPanel(parentPanel, component.Name))
+                    if (!ItemExistsInPanel(parentPanel, component.DisplayName))
                     {
                         CreatePulldown(component, parentPanel, tabName, assemblyInfo, true);
                     }
@@ -452,11 +452,11 @@ namespace pyRevitAssemblyBuilder.UIManager
 
                 case CommandComponentType.SplitButton:
                 case CommandComponentType.SplitPushButton:
-                    if (!ItemExistsInPanel(parentPanel, component.Name))
+                    if (!ItemExistsInPanel(parentPanel, component.DisplayName))
                     {
                         // Use Title from bundle.yaml if available, with config script indicator if applicable
                         var splitButtonText = GetButtonTextWithConfigIndicator(component);
-                        var splitData = new SplitButtonData(component.Name, splitButtonText);
+                        var splitData = new SplitButtonData(component.DisplayName, splitButtonText);
                         var splitBtn = parentPanel.AddItem(splitData) as SplitButton;
                         if (splitBtn != null)
                         {
@@ -519,7 +519,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     break;
 
                 case CommandComponentType.ComboBox:
-                    if (!ItemExistsInPanel(parentPanel, component.Name))
+                    if (!ItemExistsInPanel(parentPanel, component.DisplayName))
                     {
                         CreateComboBox(component, parentPanel);
                     }
@@ -594,7 +594,8 @@ namespace pyRevitAssemblyBuilder.UIManager
                 {
                     // Use Title from bundle.yaml if available, otherwise fall back to DisplayName
                     var pulldownText = !string.IsNullOrEmpty(child.Title) ? child.Title : child.DisplayName;
-                    var pdData = new PulldownButtonData(child.UniqueId, pulldownText);
+                    // Use DisplayName for the button's internal name to match control ID format
+                    var pdData = new PulldownButtonData(child.DisplayName, pulldownText);
                     itemDataList.Add(pdData);
                     originalItems.Add(child);
                 }
@@ -709,7 +710,8 @@ namespace pyRevitAssemblyBuilder.UIManager
         {
             // Use Title from bundle.yaml if available, otherwise fall back to DisplayName
             var pulldownText = !string.IsNullOrEmpty(component.Title) ? component.Title : component.DisplayName;
-            var pdData = new PulldownButtonData(component.UniqueId, pulldownText);
+            // Use DisplayName for the button's internal name to match control ID format
+            var pdData = new PulldownButtonData(component.DisplayName, pulldownText);
             if (!addToPanel) return pdData;
 
             var pdBtn = parentPanel.AddItem(pdData) as PulldownButton;
@@ -798,11 +800,12 @@ namespace pyRevitAssemblyBuilder.UIManager
             // Ensure the class name matches what the CommandTypeGenerator creates
             var className = SanitizeClassName(component.UniqueId);
             
-            // Use component.Name as the button's internal name to match what the runtime uses
-            // for CommandName. This allows script.toggle_icon() to find the button at runtime.
-            // The pythonic loader also uses component.name for both.
+            // Use DisplayName as the button's internal name to match control ID format.
+            // Control IDs use the original folder names with spaces preserved (DisplayName),
+            // so the button name must also use DisplayName for findRibbonItem() to work.
+            // In Python, component.name is used which preserves spaces.
             var pushButtonData = new PushButtonData(
-                component.Name,
+                component.DisplayName,
                 buttonText,
                 assemblyInfo.Location,
                 className);
@@ -1141,7 +1144,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     : $"{assemblyName}.{component.CommandClass}";
 
                 var pushButtonData = new PushButtonData(
-                    component.UniqueId,
+                    component.DisplayName,
                     buttonText,
                     assemblyPath,
                     fullCommandClass);
@@ -1270,8 +1273,8 @@ namespace pyRevitAssemblyBuilder.UIManager
                 // Use Title from bundle.yaml if available, otherwise fall back to DisplayName
                 var comboBoxText = !string.IsNullOrEmpty(component.Title) ? component.Title : component.DisplayName;
                 
-                // Create ComboBoxData
-                var comboBoxData = new ComboBoxData(component.UniqueId);
+                // Create ComboBoxData - use DisplayName to match control ID format
+                var comboBoxData = new ComboBoxData(component.DisplayName);
                 
                 // Add ComboBox to panel
                 var comboBox = parentPanel.AddItem(comboBoxData) as ComboBox;

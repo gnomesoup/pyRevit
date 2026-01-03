@@ -123,6 +123,7 @@ namespace pyRevitAssemblyBuilder.SessionManager
                         continue;
                     }
                     
+                    _logger.Info($"Extension assembly created: {ext.Name}");
                     stepStopwatch.Restart();
                     _assemblyBuilder?.LoadAssembly(assmInfo);
                     var loadTime = stepStopwatch.ElapsedMilliseconds;
@@ -133,6 +134,7 @@ namespace pyRevitAssemblyBuilder.SessionManager
                     // This matches the Python loader flow
                     if (!string.IsNullOrEmpty(ext.StartupScript))
                     {
+                        _logger.Info($"Running startup tasks for {ext.Name}");
                         stepStopwatch.Restart();
                         ExecuteExtensionStartupScript(ext, libraryExtensions);
                         _logger.Debug($"[PERF] {ext.Name} - StartupScript: {stepStopwatch.ElapsedMilliseconds}ms");
@@ -141,8 +143,7 @@ namespace pyRevitAssemblyBuilder.SessionManager
                     stepStopwatch.Restart();
                     _uiManager?.BuildUI(ext, assmInfo);
                     _logger.Debug($"[PERF] {ext.Name} - BuildUI: {stepStopwatch.ElapsedMilliseconds}ms");
-                    
-                    _logger.Info($"Extension loaded: {ext.Name} ({extStopwatch.ElapsedMilliseconds}ms)");
+                    _logger.Info($"UI created for extension: {ext.Name}");
                 }
                 catch (Exception ex)
                 {

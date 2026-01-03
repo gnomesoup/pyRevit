@@ -15,6 +15,13 @@ namespace pyRevitExtensionParser
         public List<ParsedComponent> Children { get; set; }
         public string BundleFile { get; set; }
         public List<string> LayoutOrder { get; set; }
+        
+        /// <summary>
+        /// The control ID for this component, used to find the ribbon item.
+        /// Format: "CustomCtrl_%CustomCtrl_%{tab}%{panel}%{group}%{button}"
+        /// </summary>
+        public string ControlId { get; set; }
+        
         /// <summary>
         /// Maps component names (from layout items) to their custom display titles.
         /// Used when layout items specify a custom title like: "Component Name[title:Custom Title]"
