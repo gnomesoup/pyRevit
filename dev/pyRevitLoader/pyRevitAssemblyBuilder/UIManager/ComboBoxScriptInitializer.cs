@@ -150,26 +150,10 @@ namespace pyRevitAssemblyBuilder.UIManager
 
             try
             {
-                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    var name = assembly.GetName().Name;
-                    if (name != null)
-                    {
-                        if (name.Contains("IronPython") && !name.Contains("Modules") && 
-                            !name.Contains("SQLite") && !name.Contains("Wpf"))
-                        {
-                            _ironPythonAssembly = assembly;
-                        }
-                        else if (name.Contains("Microsoft.Scripting") && !name.Contains("Metadata"))
-                        {
-                            _microsoftScriptingAssembly = assembly;
-                        }
-                        else if (name.StartsWith("pyRevitLoader", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _pyRevitLoaderAssembly = assembly;
-                        }
-                    }
-                }
+                // Use AssemblyCache instead of scanning AppDomain directly
+                _ironPythonAssembly = SessionManager.AssemblyCache.GetByContains("IronPython", "Modules", "SQLite", "Wpf");
+                _microsoftScriptingAssembly = SessionManager.AssemblyCache.GetByContains("Microsoft.Scripting", "Metadata");
+                _pyRevitLoaderAssembly = SessionManager.AssemblyCache.GetByPrefix("pyRevitLoader");
 
                 if (_ironPythonAssembly == null)
                 {
@@ -229,7 +213,7 @@ namespace pyRevitAssemblyBuilder.UIManager
             bool handlersWired = false;
             try
             {
-                _logger.Info($"Setting up event handlers for ComboBox '{component.DisplayName}' from '{scriptPath}'");
+                _logger.Debug($"Setting up event handlers for ComboBox '{component.DisplayName}' from '{scriptPath}'");
                 
                 engine = _createEngineMethod.Invoke(null, null);
                 if (engine == null)
@@ -471,7 +455,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     var pyrevitLibPath = Path.Combine(current.FullName, "pyrevitlib");
                     if (Directory.Exists(pyrevitLibPath))
                     {
-                        _logger.Info($"Found pyrevitlib via component traversal: {pyrevitLibPath}");
+                        _logger.Debug($"Found pyrevitlib via component traversal: {pyrevitLibPath}");
                         return pyrevitLibPath;
                     }
                     current = current.Parent;
@@ -495,7 +479,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                             var pyrevitLibPath = Path.Combine(current.FullName, "pyrevitlib");
                             if (Directory.Exists(pyrevitLibPath))
                             {
-                                _logger.Info($"Found pyrevitlib via loader assembly: {pyrevitLibPath}");
+                                _logger.Debug($"Found pyrevitlib via loader assembly: {pyrevitLibPath}");
                                 return pyrevitLibPath;
                             }
                         }
@@ -521,7 +505,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         var pyrevitLibPath = Path.Combine(current.FullName, "pyrevitlib");
                         if (Directory.Exists(pyrevitLibPath))
                         {
-                            _logger.Info($"Found pyrevitlib via this assembly: {pyrevitLibPath}");
+                            _logger.Debug($"Found pyrevitlib via this assembly: {pyrevitLibPath}");
                             return pyrevitLibPath;
                         }
                     }

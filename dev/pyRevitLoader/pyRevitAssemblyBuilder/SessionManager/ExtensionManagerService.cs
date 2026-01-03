@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using pyRevitExtensionParser;
@@ -10,13 +11,31 @@ namespace pyRevitAssemblyBuilder.SessionManager
     /// </summary>
     public class ExtensionManagerService
     {
+        private List<ParsedExtension>? _cachedExtensions;
+
+        /// <summary>
+        /// Gets all parsed extensions (cached).
+        /// </summary>
+        private List<ParsedExtension> GetAllExtensionsCached()
+        {
+            return _cachedExtensions ??= ExtensionParser.ParseInstalledExtensions().ToList();
+        }
+
+        /// <summary>
+        /// Clears the extension cache, forcing a re-parse on next access.
+        /// </summary>
+        public void ClearCache()
+        {
+            _cachedExtensions = null;
+        }
+
         /// <summary>
         /// Gets all installed extensions that are not disabled.
         /// </summary>
         /// <returns>An enumerable collection of parsed extensions.</returns>
         public IEnumerable<ParsedExtension> GetInstalledExtensions()
         {
-            return ExtensionParser.ParseInstalledExtensions()
+            return GetAllExtensionsCached()
                 .Where(ext => ext.Config?.Disabled != true);
         }
 
@@ -26,8 +45,9 @@ namespace pyRevitAssemblyBuilder.SessionManager
         /// <returns>An enumerable collection of parsed UI extensions.</returns>
         public IEnumerable<ParsedExtension> GetInstalledUIExtensions()
         {
-            return ExtensionParser.ParseInstalledExtensions()
-                .Where(ext => ext.Config?.Disabled != true && ext.Directory.EndsWith(".extension", System.StringComparison.OrdinalIgnoreCase));
+            return GetAllExtensionsCached()
+                .Where(ext => ext.Config?.Disabled != true && 
+                       ext.Directory.EndsWith(ExtensionConstants.UI_EXTENSION_SUFFIX, System.StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -36,8 +56,9 @@ namespace pyRevitAssemblyBuilder.SessionManager
         /// <returns>An enumerable collection of parsed library extensions.</returns>
         public IEnumerable<ParsedExtension> GetInstalledLibraryExtensions()
         {
-            return ExtensionParser.ParseInstalledExtensions()
-                .Where(ext => ext.Config?.Disabled != true && ext.Directory.EndsWith(".lib", System.StringComparison.OrdinalIgnoreCase));
+            return GetAllExtensionsCached()
+                .Where(ext => ext.Config?.Disabled != true && 
+                       ext.Directory.EndsWith(ExtensionConstants.LIBRARY_EXTENSION_SUFFIX, System.StringComparison.OrdinalIgnoreCase));
         }
     }
 }

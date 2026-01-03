@@ -1,4 +1,6 @@
+#nullable enable
 using System;
+using System.Diagnostics;
 
 namespace pyRevitAssemblyBuilder.SessionManager
 {
@@ -7,13 +9,14 @@ namespace pyRevitAssemblyBuilder.SessionManager
     /// </summary>
     public class LoggingHelper
     {
-        private readonly dynamic _pythonLogger;
+        private const string LogPrefix = "[pyRevit]";
+        private readonly dynamic? _pythonLogger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LoggingHelper"/> class.
         /// </summary>
         /// <param name="pythonLogger">The Python logger instance passed from Python code.</param>
-        public LoggingHelper(object pythonLogger)
+        public LoggingHelper(object? pythonLogger)
         {
             _pythonLogger = pythonLogger;
         }
@@ -28,7 +31,10 @@ namespace pyRevitAssemblyBuilder.SessionManager
             {
                 _pythonLogger?.info(message);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"{LogPrefix} Logging (Info) failed: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -41,7 +47,10 @@ namespace pyRevitAssemblyBuilder.SessionManager
             {
                 _pythonLogger?.debug(message);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"{LogPrefix} Logging (Debug) failed: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -54,7 +63,10 @@ namespace pyRevitAssemblyBuilder.SessionManager
             {
                 _pythonLogger?.error(message);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"{LogPrefix} Logging (Error) failed: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -67,7 +79,10 @@ namespace pyRevitAssemblyBuilder.SessionManager
             {
                 _pythonLogger?.warning(message);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"{LogPrefix} Logging (Warning) failed: {ex.Message}");
+            }
         }
     }
 }

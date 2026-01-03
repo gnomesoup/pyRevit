@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Autodesk.Revit.Attributes;
 using pyRevitExtensionParser;
+using pyRevitAssemblyBuilder.SessionManager;
 using static pyRevitExtensionParser.ExtensionParser;
 #if !NETFRAMEWORK
 using System.Runtime.Loader;
@@ -77,8 +78,8 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
                 string engineCfgs = CommandGenerationUtilities.BuildEngineConfigs(cmd, scriptPath);
                 
                 // Get context from component - already formatted by ParsedBundle.GetFormattedContext()
-                // Default to "(zero-doc)" if not specified
-                string context = !string.IsNullOrEmpty(cmd.Context) ? cmd.Context : "(zero-doc)";
+                // Default to ExtensionConstants.DEFAULT_CONTEXT if not specified
+                string context = !string.IsNullOrEmpty(cmd.Context) ? cmd.Context : ExtensionConstants.DEFAULT_CONTEXT;
                 
                 string arguments = CommandGenerationUtilities.BuildCommandArguments(extension, cmd, revitVersion);
 
@@ -267,8 +268,8 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
             string searchPaths = string.Join(";", filteredPaths);
             
             // Get context from component - already formatted by ParsedBundle.GetFormattedContext()
-            // Default to "(zero-doc)" if not specified
-            string context = !string.IsNullOrEmpty(cmd.Context) ? cmd.Context : "(zero-doc)";
+            // Default to ExtensionConstants.DEFAULT_CONTEXT if not specified
+            string context = !string.IsNullOrEmpty(cmd.Context) ? cmd.Context : ExtensionConstants.DEFAULT_CONTEXT;
             
             // Get bundle name (parent directory of script)
             string bundleName = string.IsNullOrEmpty(scriptDir) ? string.Empty : (Path.GetFileName(scriptDir) ?? string.Empty);
@@ -315,8 +316,8 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
                 _extendedAvailType);
 
             // Get context from component - already formatted by ParsedBundle.GetFormattedContext()
-            // Default to "(zero-doc)" if not specified
-            string context = !string.IsNullOrEmpty(cmd.Context) ? cmd.Context : "(zero-doc)";
+            // Default to ExtensionConstants.DEFAULT_CONTEXT if not specified
+            string context = !string.IsNullOrEmpty(cmd.Context) ? cmd.Context : ExtensionConstants.DEFAULT_CONTEXT;
 
             // Parameterless ctor for ExtendedAvail
             var ctor = atb.DefineConstructor(

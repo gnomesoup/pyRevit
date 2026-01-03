@@ -25,7 +25,9 @@ namespace PyRevitLoader
 		private static UIApplication GetUIApplication(UIControlledApplication application)
 		{
 			var versionNumber = application.ControlledApplication.VersionNumber;
-			var fieldName = int.Parse(versionNumber) >= 2017 ? "m_uiapplication" : "m_application";
+			var fieldName = int.Parse(versionNumber) >= RevitApiConstants.NEW_UIAPP_FIELD_VERSION 
+				? RevitApiConstants.MODERN_UIAPP_FIELD 
+				: RevitApiConstants.LEGACY_UIAPP_FIELD;
 			var fi = application.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
 
 			if (fi == null)

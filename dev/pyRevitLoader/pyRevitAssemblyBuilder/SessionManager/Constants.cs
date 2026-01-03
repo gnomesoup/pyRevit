@@ -30,5 +30,46 @@ namespace pyRevitAssemblyBuilder.SessionManager
         /// </summary>
         public const string REFED_ASSMS_KEY = "PYREVIT_REFEDASSMS";
     }
-}
 
+    /// <summary>
+    /// Constants related to pyRevit extensions.
+    /// </summary>
+    internal static class ExtensionConstants
+    {
+        /// <summary>
+        /// File suffix for UI extensions.
+        /// </summary>
+        public const string UI_EXTENSION_SUFFIX = ".extension";
+
+        /// <summary>
+        /// File suffix for library extensions.
+        /// </summary>
+        public const string LIBRARY_EXTENSION_SUFFIX = ".lib";
+
+        /// <summary>
+        /// Default context value for commands without explicit context.
+        /// </summary>
+        public const string DEFAULT_CONTEXT = "(zero-doc)";
+    }
+
+    /// <summary>
+    /// Constants related to Revit API internals.
+    /// </summary>
+    public static class RevitApiConstants
+    {
+        /// <summary>
+        /// Revit version where the UIApplication field name changed.
+        /// </summary>
+        public const int NEW_UIAPP_FIELD_VERSION = 2017;
+
+        /// <summary>
+        /// Field name for UIApplication in Revit 2017 and newer.
+        /// </summary>
+        public const string MODERN_UIAPP_FIELD = "m_uiapplication";
+
+        /// <summary>
+        /// Field name for UIApplication in Revit versions before 2017.
+        /// </summary>
+        public const string LEGACY_UIAPP_FIELD = "m_application";
+    }
+}

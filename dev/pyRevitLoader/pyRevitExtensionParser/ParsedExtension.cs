@@ -37,13 +37,27 @@ namespace pyRevitExtensionParser
             return exists;
         }
         
+        // Static HashSet for O(1) extension lookup - much faster than string comparisons
+        private static readonly HashSet<string> _scriptExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".py", ".cs", ".vb", ".rb", ".dyn", ".gh", ".ghx", ".xaml", ".yaml", ".json"
+        };
+        
+        // Cached hash value to avoid recalculation
+        private Dictionary<string, string> _cachedHashes = new Dictionary<string, string>();
+        
         /// <summary>
         /// Calculates a hash based on the modification times of all relevant files in the extension directory.
         /// This matches the Python implementation in coreutils.calculate_dir_hash()
+        /// OPTIMIZED: Uses EnumerateFiles/EnumerateDirectories for lazy evaluation, HashSet for O(1) extension lookup
         /// </summary>
         /// <param name="seed">Optional seed to include in hash calculation. Use empty string for Python, 'ILPack' for ILPack, 'Roslyn' for Roslyn</param>
         public string GetHash(string seed = "")
         {
+            // Check cache first
+            if (_cachedHashes.TryGetValue(seed, out var cachedHash))
+                return cachedHash;
+                
             if (string.IsNullOrEmpty(Directory) || !System.IO.Directory.Exists(Directory))
                 return Directory?.GetHashCode().ToString("X") ?? "0";
 
@@ -51,8 +65,8 @@ namespace pyRevitExtensionParser
             {
                 long mtimeSum = 0;
 
-                // Walk through all subdirectories
-                foreach (var dir in System.IO.Directory.GetDirectories(Directory, "*", SearchOption.AllDirectories))
+                // Use EnumerateDirectories for lazy evaluation - doesn't load all paths into memory at once
+                foreach (var dir in System.IO.Directory.EnumerateDirectories(Directory, "*", SearchOption.AllDirectories))
                 {
                     var dirName = Path.GetFileName(dir);
                     
@@ -63,16 +77,13 @@ namespace pyRevitExtensionParser
                     }
                 }
 
-                // Process all files
-                foreach (var file in System.IO.Directory.GetFiles(Directory, "*.*", SearchOption.AllDirectories))
+                // Use EnumerateFiles for lazy evaluation - processes files as they're found
+                foreach (var file in System.IO.Directory.EnumerateFiles(Directory, "*.*", SearchOption.AllDirectories))
                 {
-                    var fileName = Path.GetFileName(file);
-                    var ext = Path.GetExtension(file).ToLowerInvariant();
+                    var ext = Path.GetExtension(file);
                     
-                    // Include relevant script files (matching Python's file_filter)
-                    if (ext == ".py" || ext == ".cs" || ext == ".vb" || ext == ".rb" || 
-                        ext == ".dyn" || ext == ".gh" || ext == ".ghx" ||
-                        ext == ".xaml" || ext == ".yaml" || ext == ".json")
+                    // Use HashSet.Contains for O(1) lookup instead of multiple string comparisons
+                    if (_scriptExtensions.Contains(ext))
                     {
                         mtimeSum += File.GetLastWriteTimeUtc(file).Ticks;
                     }
@@ -85,7 +96,9 @@ namespace pyRevitExtensionParser
                     var inputString = mtimeSum.ToString() + seed;
                     var bytes = Encoding.UTF8.GetBytes(inputString);
                     var hashBytes = md5.ComputeHash(bytes);
-                    return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                    var result = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                    _cachedHashes[seed] = result;
+                    return result;
                 }
             }
             catch
@@ -115,7 +128,9 @@ namespace pyRevitExtensionParser
             }
         }
 
-        private static readonly CommandComponentType[] _allowedTypes = new[] {
+        // Use HashSet for O(1) type lookup instead of Contains on array
+        private static readonly HashSet<CommandComponentType> _allowedTypes = new HashSet<CommandComponentType>
+        {
             CommandComponentType.PushButton,
             CommandComponentType.PanelButton,
             CommandComponentType.SmartButton,
@@ -124,23 +139,37 @@ namespace pyRevitExtensionParser
             CommandComponentType.ContentButton
         };
 
+        // Cached command components - this is called 3+ times per extension during loading
+        private List<ParsedComponent> _cachedCommandComponents;
+        
+        /// <summary>
+        /// Collects all command components from this extension (cached after first call).
+        /// </summary>
         public IEnumerable<ParsedComponent> CollectCommandComponents()
-            => Collect(this.Children);
-
-        private IEnumerable<ParsedComponent> Collect(IEnumerable<ParsedComponent> list)
         {
-            if (list == null) yield break;
+            if (_cachedCommandComponents == null)
+            {
+                _cachedCommandComponents = new List<ParsedComponent>();
+                CollectInto(_cachedCommandComponents, this.Children);
+            }
+            return _cachedCommandComponents;
+        }
+
+        // Non-allocating collection method - adds directly to list instead of yielding
+        private void CollectInto(List<ParsedComponent> result, IEnumerable<ParsedComponent> list)
+        {
+            if (list == null) return;
 
             foreach (var comp in list)
             {
                 if (comp.Children != null)
                 {
-                    foreach (var child in Collect(comp.Children))
-                        yield return child;
+                    CollectInto(result, comp.Children);
                 }
 
+                // HashSet.Contains is O(1) vs array Contains which is O(n)
                 if (_allowedTypes.Contains(comp.Type))
-                    yield return comp;
+                    result.Add(comp);
             }
         }
         

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -29,6 +31,10 @@ namespace pyRevitAssemblyBuilder.UIManager
         private ComboBoxScriptInitializer _comboBoxScriptInitializer;
         private SmartButtonScriptInitializer _smartButtonScriptInitializer;
         private readonly RevitThemeDetector _themeDetector;
+        
+        // Key: "filepath|size", Value: BitmapSource
+        // Uses ConcurrentDictionary to support parallel icon pre-loading
+        private readonly ConcurrentDictionary<string, BitmapSource> _bitmapCache = new ConcurrentDictionary<string, BitmapSource>();
 
         /// <summary>
         /// Gets the UIApplication instance used by this service.
@@ -74,6 +80,10 @@ namespace pyRevitAssemblyBuilder.UIManager
                 return;
             }
 
+            // This converts sequential file I/O to parallel I/O
+            // Note: Bitmap processing must happen on UI thread, so we read file bytes in parallel
+            PreloadExtensionIconBytes(extension);
+
             _currentExtension = extension;
             foreach (var component in extension.Children)
             {
@@ -83,6 +93,88 @@ namespace pyRevitAssemblyBuilder.UIManager
                 }
             }
             _currentExtension = null;
+        }
+
+        /// <summary>
+        /// Pre-reads all icon file bytes for an extension in parallel.
+        /// This significantly reduces UI build time by parallelizing file I/O while
+        /// keeping bitmap creation on the main thread (required by WPF).
+        /// </summary>
+        private void PreloadExtensionIconBytes(ParsedExtension extension)
+        {
+            try
+            {
+                var isDarkTheme = _themeDetector.IsDarkTheme();
+                
+                // Collect all unique icon paths we'll need
+                var iconPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                
+                void CollectIconPaths(ParsedComponent component)
+                {
+                    if (component == null) return;
+                    
+                    // Get the best icons for this component
+                    var largeIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_LARGE, isDarkTheme);
+                    var smallIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_SMALL, isDarkTheme);
+                    
+                    if (largeIcon != null && !string.IsNullOrEmpty(largeIcon.FilePath) && File.Exists(largeIcon.FilePath))
+                    {
+                        iconPaths.Add(largeIcon.FilePath);
+                    }
+                    if (smallIcon != null && !string.IsNullOrEmpty(smallIcon.FilePath) && File.Exists(smallIcon.FilePath))
+                    {
+                        iconPaths.Add(smallIcon.FilePath);
+                    }
+                    
+                    // Recurse into children
+                    if (component.Children != null)
+                    {
+                        foreach (var child in component.Children)
+                        {
+                            CollectIconPaths(child);
+                        }
+                    }
+                }
+                
+                // Collect from all top-level children
+                if (extension.Children != null)
+                {
+                    foreach (var child in extension.Children)
+                    {
+                        CollectIconPaths(child);
+                    }
+                }
+                
+                if (iconPaths.Count == 0)
+                    return;
+                
+                _logger.Debug($"Pre-reading {iconPaths.Count} icon files for {extension.Name}...");
+                
+                // Read all icon file bytes in parallel to warm OS file cache
+                // This makes subsequent bitmap loading much faster
+                Parallel.ForEach(iconPaths, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, 
+                    iconPath =>
+                    {
+                        try
+                        {
+                            // Just read the file to warm the OS file cache
+                            // The actual bitmap loading will use BitmapImage with UriSource
+                            // which benefits from the warm cache
+                            File.ReadAllBytes(iconPath);
+                        }
+                        catch
+                        {
+                            // Ignore read errors - bitmap loading will handle them
+                        }
+                    });
+                
+                _logger.Debug($"Pre-read {iconPaths.Count} icon files for {extension.Name}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Error pre-reading icons: {ex.Message}");
+                // Continue without pre-loading - icons will load on demand
+            }
         }
 
         private void RecursivelyBuildUI(
@@ -1570,12 +1662,17 @@ namespace pyRevitAssemblyBuilder.UIManager
         }
 
         /// <summary>
-        /// Loads a BitmapSource from an image file path with automatic resizing for Revit UI requirements
+        /// Loads a BitmapSource from an image file path with automatic resizing for Revit UI requirements.
+        /// Thread-safe for parallel icon pre-loading.
         /// </summary>
         private BitmapSource LoadBitmapSource(string imagePath, int targetSize = 0)
         {
             if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
                 return null;
+
+            string cacheKey = $"{imagePath}|{targetSize}";
+            if (_bitmapCache.TryGetValue(cacheKey, out var cachedBitmap))
+                return cachedBitmap;
 
             try
             {
@@ -1592,12 +1689,16 @@ namespace pyRevitAssemblyBuilder.UIManager
                 }
                 
                 bitmap.EndInit();
-                bitmap.Freeze(); // Make it thread-safe
-
-                
+                bitmap.Freeze(); // Make it thread-safe for cross-thread access
 
                 // Ensure proper DPI for Revit (96 DPI is standard)
-                return EnsureProperDpi(bitmap, targetSize);
+                var result = EnsureProperDpi(bitmap, targetSize);
+                
+                // Cache the result (thread-safe, may overwrite duplicate loads but that's OK)
+                if (result != null)
+                    _bitmapCache.TryAdd(cacheKey, result);
+                    
+                return result;
             }
             catch (Exception ex)
             {

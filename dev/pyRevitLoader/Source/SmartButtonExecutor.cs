@@ -14,11 +14,15 @@ using pyRevitAssemblyBuilder.UIManager;
 namespace PyRevitLoader {
     /// <summary>
     /// Executes SmartButton __selfinit__ scripts.
-    /// Based on ScriptExecutor but specialized for __selfinit__ execution.
+    /// Creating a new engine per button was the main performance bottleneck.
     /// </summary>
     public class SmartButtonExecutor {
         private readonly UIApplication _revit;
         private readonly Action<string> _logger;
+        private ScriptEngine _engine;
+        private ScriptExecutor _scriptExecutor;
+        private string _pyrevitLibPath;
+        private HashSet<string> _baseSearchPaths;
 
         public SmartButtonExecutor(UIApplication uiApplication, Action<string> logger = null) {
             _revit = uiApplication;
@@ -29,6 +33,21 @@ namespace PyRevitLoader {
 
         private void Log(string message) {
             _logger?.Invoke(message);
+        }
+        
+        /// <summary>
+        /// Ensures the IronPython engine is initialized. Called once, reused for all buttons.
+        /// </summary>
+        private void EnsureEngineInitialized() {
+            if (_engine != null)
+                return;
+                
+            Log("Initializing shared IronPython engine for SmartButtons");
+            _scriptExecutor = new ScriptExecutor(_revit, false);
+            _engine = _scriptExecutor.CreateEngine();
+            
+            // Cache base search paths
+            _baseSearchPaths = new HashSet<string>(_engine.GetSearchPaths());
         }
 
         /// <summary>
@@ -44,42 +63,32 @@ namespace PyRevitLoader {
             IEnumerable<string> additionalSearchPaths = null) {
             
             if (string.IsNullOrEmpty(scriptPath) || !File.Exists(scriptPath)) {
-                Log($"Script not found: {scriptPath}");
                 return true; // Don't deactivate
             }
 
             // Only process Python scripts for __selfinit__
-            // VB (.vb) and Ruby (.rb) scripts don't support __selfinit__ - they implement IExternalCommand
-            // and are executed when clicked, not during initialization. They work as regular buttons.
-            // C# (.cs) scripts also implement IExternalCommand and don't have __selfinit__.
             if (!scriptPath.EndsWith(".py", StringComparison.OrdinalIgnoreCase)) {
-                Log($"Script '{scriptPath}' is not Python - skipping __selfinit__ (VB/Ruby/C# scripts don't support __selfinit__)");
                 return true;
             }
 
-            ScriptEngine engine = null;
             try {
-                Log($"Executing __selfinit__ for '{context.name}'");
-
-                // Create and setup engine (reuse ScriptExecutor's approach)
-                var scriptExecutor = new ScriptExecutor(_revit, false);
-                engine = scriptExecutor.CreateEngine();
+                // Reuse the engine instead of creating new one each time
+                EnsureEngineInitialized();
                 
-                // Setup environment with embedded lib and builtins
-                var scope = scriptExecutor.SetupEnvironment(engine);
+                // Create a fresh scope for this script (but reuse engine)
+                var scope = _scriptExecutor.SetupEnvironment(_engine);
 
-                // Setup additional search paths
-                SetupSearchPaths(engine, context.directory, additionalSearchPaths);
+                // Setup search paths for this specific component
+                SetupSearchPathsForComponent(_engine, context.directory, additionalSearchPaths);
 
                 // Set __file__ variable
                 scope.SetVariable("__file__", scriptPath);
 
                 // Execute the script file to define __selfinit__
-                Log($"Loading script: {scriptPath}");
-                var script = engine.CreateScriptSourceFromFile(scriptPath, Encoding.UTF8, SourceCodeKind.File);
+                var script = _engine.CreateScriptSourceFromFile(scriptPath, Encoding.UTF8, SourceCodeKind.File);
 
                 // Compile with proper options
-                var compilerOptions = (PythonCompilerOptions)engine.GetCompilerOptions(scope);
+                var compilerOptions = (PythonCompilerOptions)_engine.GetCompilerOptions(scope);
                 compilerOptions.ModuleName = "__main__";
                 compilerOptions.Module |= IronPython.Runtime.ModuleOptions.Initialize;
 
@@ -95,19 +104,16 @@ namespace PyRevitLoader {
                     script.Execute(scope);
                 }
                 catch (SystemExitException) {
-                    // Script exited, that's fine
                     return true;
                 }
                 catch (Exception ex) {
                     Message = $"Script execution error: {ex.Message}";
                     Log(Message);
-                    LogSearchPaths(engine);
                     return true;
                 }
 
                 // Check if __selfinit__ is defined
                 if (!scope.ContainsVariable("__selfinit__")) {
-                    Log($"No __selfinit__ found in script for '{context.name}'");
                     return true;
                 }
 
@@ -117,24 +123,17 @@ namespace PyRevitLoader {
                     return true;
                 }
 
-                // The pythonic loader passes (smartbutton, smartbutton_ui, HOST_APP.uiapp)
-                // We pass the same SmartButtonContext for both to provide all functionality
-                Log($"Calling __selfinit__ for '{context.name}'");
-                
                 try {
                     // Call __selfinit__(script_cmp, ui_button_cmp, __rvt__)
-                    var ops = engine.Operations;
+                    var ops = _engine.Operations;
                     var result = ops.Invoke(selfInitFunc, context, context, _revit);
                     
                     // If __selfinit__ returns False, the button should be deactivated
-                    if (result is bool boolResult) {
-                        if (boolResult == false) {
-                            Log($"__selfinit__ returned False for '{context.name}' - deactivating button");
-                            return false;
-                        }
+                    if (result is bool boolResult && boolResult == false) {
+                        Log($"__selfinit__ returned False for '{context.name}' - deactivating button");
+                        return false;
                     }
 
-                    Log($"__selfinit__ completed successfully for '{context.name}'");
                     return true;
                 }
                 catch (Exception ex) {
@@ -148,40 +147,40 @@ namespace PyRevitLoader {
                 Log(Message);
                 return true;
             }
-            finally {
-                if (engine != null) {
-                    try {
-                        engine.Runtime.Shutdown();
-                    }
-                    catch { }
-                }
-            }
+            // NOTE: We no longer shutdown the engine after each execution
         }
 
-        private void SetupSearchPaths(ScriptEngine engine, string componentDirectory, IEnumerable<string> additionalSearchPaths) {
-            var paths = engine.GetSearchPaths();
+        /// <summary>
+        /// Sets up search paths for a specific component, reusing cached base paths.
+        /// </summary>
+        private void SetupSearchPathsForComponent(ScriptEngine engine, string componentDirectory, IEnumerable<string> additionalSearchPaths) {
+            // Start with cached base paths
+            var paths = new List<string>(_baseSearchPaths);
 
             // Add component directory
             if (!string.IsNullOrEmpty(componentDirectory) && Directory.Exists(componentDirectory)) {
-                paths.Add(componentDirectory);
+                if (!paths.Contains(componentDirectory))
+                    paths.Add(componentDirectory);
 
                 // Add lib subdirectory if exists
                 var libPath = Path.Combine(componentDirectory, "lib");
-                if (Directory.Exists(libPath))
+                if (Directory.Exists(libPath) && !paths.Contains(libPath))
                     paths.Add(libPath);
             }
 
-            // Find and add pyrevitlib
-            var pyrevitLib = FindPyRevitLib(componentDirectory);
-            if (!string.IsNullOrEmpty(pyrevitLib)) {
-                paths.Add(pyrevitLib);
-                Log($"Added pyrevitlib: {pyrevitLib}");
+            // Find and add pyrevitlib (cached)
+            if (_pyrevitLibPath == null) {
+                _pyrevitLibPath = FindPyRevitLib(componentDirectory) ?? string.Empty;
+            }
+            
+            if (!string.IsNullOrEmpty(_pyrevitLibPath) && !paths.Contains(_pyrevitLibPath)) {
+                paths.Add(_pyrevitLibPath);
 
                 // Add site-packages
-                var pyrevitRoot = Path.GetDirectoryName(pyrevitLib);
+                var pyrevitRoot = Path.GetDirectoryName(_pyrevitLibPath);
                 if (!string.IsNullOrEmpty(pyrevitRoot)) {
                     var sitePackages = Path.Combine(pyrevitRoot, "site-packages");
-                    if (Directory.Exists(sitePackages))
+                    if (Directory.Exists(sitePackages) && !paths.Contains(sitePackages))
                         paths.Add(sitePackages);
                 }
             }

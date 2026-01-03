@@ -253,69 +253,98 @@ namespace pyRevitAssemblyBuilder.UIManager
         private readonly LoggingHelper _logger;
         private readonly UIApplication _uiApp;
         private readonly RevitThemeDetector _themeDetector;
-        
-        // Cached executor instance
+        private static Assembly _pyRevitLoaderAssembly;
+        private static Type _executorType;
+        private static bool _staticInitialized;
+        private static bool _staticInitializationFailed;
+        private static readonly object _staticLock = new object();
         private object _executor;
         private MethodInfo _executeMethod;
-        private bool _initialized;
-        private bool _initializationFailed;
+        private bool _instanceInitialized;
+        private bool _instanceInitializationFailed;
 
         public SmartButtonScriptInitializer(UIApplication uiApp, object pythonLogger)
         {
             _uiApp = uiApp;
             _logger = new LoggingHelper(pythonLogger);
             _themeDetector = new RevitThemeDetector(pythonLogger);
+            
+            // Do static initialization once
+            EnsureStaticInitialized();
+        }
+        
+        /// <summary>
+        /// One-time static initialization to find assemblies and types (expensive operations).
+        /// </summary>
+        private void EnsureStaticInitialized()
+        {
+            if (_staticInitialized || _staticInitializationFailed)
+                return;
+                
+            lock (_staticLock)
+            {
+                if (_staticInitialized || _staticInitializationFailed)
+                    return;
+                    
+                try
+                {
+                    // Use AssemblyCache instead of scanning AppDomain directly
+                    _pyRevitLoaderAssembly = SessionManager.AssemblyCache.GetByPrefix("pyRevitLoader");
+
+                    if (_pyRevitLoaderAssembly == null)
+                    {
+                        _staticInitializationFailed = true;
+                        return;
+                    }
+
+                    // Get SmartButtonExecutor type - do this ONCE
+                    _executorType = _pyRevitLoaderAssembly.GetType("PyRevitLoader.SmartButtonExecutor");
+                    if (_executorType == null)
+                    {
+                        _staticInitializationFailed = true;
+                        return;
+                    }
+
+                    _staticInitialized = true;
+                }
+                catch
+                {
+                    _staticInitializationFailed = true;
+                }
+            }
         }
 
-        private void EnsureInitialized()
+        /// <summary>
+        /// Per-instance initialization to create executor with UIApp.
+        /// </summary>
+        private void EnsureInstanceInitialized()
         {
-            if (_initialized || _initializationFailed)
+            if (_instanceInitialized || _instanceInitializationFailed)
                 return;
+
+            if (_staticInitializationFailed || _executorType == null)
+            {
+                _logger.Warning("PyRevitLoader assembly or SmartButtonExecutor type not found");
+                _instanceInitializationFailed = true;
+                return;
+            }
 
             try
             {
-                // Find PyRevitLoader assembly
-                Assembly pyRevitLoaderAssembly = null;
-                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    var name = assembly.GetName().Name;
-                    if (name != null && name.StartsWith("pyRevitLoader", StringComparison.OrdinalIgnoreCase))
-                    {
-                        pyRevitLoaderAssembly = assembly;
-                        break;
-                    }
-                }
-
-                if (pyRevitLoaderAssembly == null)
-                {
-                    _logger.Warning("PyRevitLoader assembly not found");
-                    _initializationFailed = true;
-                    return;
-                }
-
-                // Get SmartButtonExecutor type
-                var executorType = pyRevitLoaderAssembly.GetType("PyRevitLoader.SmartButtonExecutor");
-                if (executorType == null)
-                {
-                    _logger.Warning("SmartButtonExecutor type not found");
-                    _initializationFailed = true;
-                    return;
-                }
-
                 // Create executor instance with logger
-                Action<string> logAction = msg => _logger.Info(msg);
-                _executor = Activator.CreateInstance(executorType, _uiApp, logAction);
+                Action<string> logAction = msg => _logger.Debug(msg);
+                _executor = Activator.CreateInstance(_executorType, _uiApp, logAction);
 
                 // Get ExecuteSelfInit method
-                _executeMethod = executorType.GetMethod("ExecuteSelfInit");
+                _executeMethod = _executorType.GetMethod("ExecuteSelfInit");
 
-                _initialized = true;
+                _instanceInitialized = true;
                 _logger.Debug("SmartButtonScriptInitializer initialized successfully");
             }
             catch (Exception ex)
             {
                 _logger.Error($"Failed to initialize SmartButtonScriptInitializer: {ex.Message}");
-                _initializationFailed = true;
+                _instanceInitializationFailed = true;
             }
         }
 
@@ -324,9 +353,9 @@ namespace pyRevitAssemblyBuilder.UIManager
         /// </summary>
         public bool ExecuteSelfInit(ParsedComponent component, PushButton pushButton)
         {
-            EnsureInitialized();
+            EnsureInstanceInitialized();
 
-            if (_initializationFailed || _executor == null || _executeMethod == null)
+            if (_instanceInitializationFailed || _executor == null || _executeMethod == null)
             {
                 _logger.Debug("SmartButtonScriptInitializer not available");
                 return true;
