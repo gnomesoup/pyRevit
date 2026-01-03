@@ -284,6 +284,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         {
                             ApplyIconToPushButtonThemeAware(panelBtn, component);
                             panelBtn.ToolTip = BuildButtonTooltip(component);
+                            SetTooltipMedia(panelBtn, component);
                             ApplyHighlightToButton(panelBtn, component);
                             ModifyToPanelButton(tabName, parentPanel, panelBtn);
                         }
@@ -301,6 +302,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         {
                             ApplyIconToPushButtonThemeAware(btn, component);
                             btn.ToolTip = BuildButtonTooltip(component);
+                            SetTooltipMedia(btn, component);
                             ApplyHighlightToButton(btn, component);
                         }
                     }
@@ -316,6 +318,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                             // Apply initial icon (may be overridden by __selfinit__)
                             ApplyIconToPushButtonThemeAware(smartBtn, component);
                             smartBtn.ToolTip = BuildButtonTooltip(component);
+                            SetTooltipMedia(smartBtn, component);
                             ApplyHighlightToButton(smartBtn, component);
                             
                             // Execute __selfinit__ for SmartButton
@@ -341,6 +344,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                             {
                                 ApplyIconToPushButtonThemeAware(linkBtn, component);
                                 linkBtn.ToolTip = BuildButtonTooltip(component);
+                                SetTooltipMedia(linkBtn, component);
                                 ApplyHighlightToButton(linkBtn, component);
                             }
                         }
@@ -369,6 +373,7 @@ namespace pyRevitAssemblyBuilder.UIManager
 
                             // Assign tooltip to the split button itself
                             splitBtn.ToolTip = BuildButtonTooltip(component);
+                            SetTooltipMedia(splitBtn, component);
 
                             // Apply highlight to the split button itself
                             ApplyHighlightToButton(splitBtn, component);
@@ -397,6 +402,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                     {
                                         ApplyIconToPushButtonThemeAware(subBtn, sub, component);
                                         subBtn.ToolTip = BuildButtonTooltip(sub);
+                                        SetTooltipMedia(subBtn, sub);
                                         ApplyHighlightToButton(subBtn, sub);
                                     }
                                 }
@@ -410,6 +416,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                         {
                                             ApplyIconToPushButtonThemeAware(linkSubBtn, sub, component);
                                             linkSubBtn.ToolTip = BuildButtonTooltip(sub);
+                                            SetTooltipMedia(linkSubBtn, sub);
                                             ApplyHighlightToButton(linkSubBtn, sub);
                                         }
                                     }
@@ -521,6 +528,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         {
                             ApplyIconToPushButtonThemeAware(pushBtn, origComponent);
                             pushBtn.ToolTip = BuildButtonTooltip(origComponent);
+                            SetTooltipMedia(pushBtn, origComponent);
                             ApplyHighlightToButton(pushBtn, origComponent);
                             
                             // Execute __selfinit__ for SmartButtons in stack
@@ -540,6 +548,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                             // Apply icon and tooltip to the pulldown button itself in stack
                             ApplyIconToPulldownButtonThemeAware(pdBtn, origComponent);
                             pdBtn.ToolTip = BuildButtonTooltip(origComponent);
+                            SetTooltipMedia(pdBtn, origComponent);
                             
                             // Apply highlight to the pulldown button itself in stack
                             ApplyHighlightToButton(pdBtn, origComponent);
@@ -568,6 +577,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                     {
                                         ApplyIconToPulldownSubButtonThemeAware(subBtn, sub, origComponent);
                                         subBtn.ToolTip = BuildButtonTooltip(sub);
+                                        SetTooltipMedia(subBtn, sub);
                                         ApplyHighlightToButton(subBtn, sub);
                                     }
                                 }
@@ -579,6 +589,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                     {
                                         ApplyIconToPulldownSubButtonThemeAware(smartSubBtn, sub, origComponent);
                                         smartSubBtn.ToolTip = BuildButtonTooltip(sub);
+                                        SetTooltipMedia(smartSubBtn, sub);
                                         ApplyHighlightToButton(smartSubBtn, sub);
                                         
                                         // Execute __selfinit__ for SmartButton in stack pulldown
@@ -615,6 +626,7 @@ namespace pyRevitAssemblyBuilder.UIManager
             // Apply icon and tooltip to the pulldown button itself
             ApplyIconToPulldownButtonThemeAware(pdBtn, component);
             pdBtn.ToolTip = BuildButtonTooltip(component);
+            SetTooltipMedia(pdBtn, component);
             
             // Apply highlight to the pulldown button itself
             ApplyHighlightToButton(pdBtn, component);
@@ -643,6 +655,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     {
                         ApplyIconToPulldownSubButtonThemeAware(subBtn, sub, component);
                         subBtn.ToolTip = BuildButtonTooltip(sub);
+                        SetTooltipMedia(subBtn, sub);
                         ApplyHighlightToButton(subBtn, sub);
                     }
                 }
@@ -654,6 +667,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     {
                         ApplyIconToPulldownSubButtonThemeAware(smartSubBtn, sub, component);
                         smartSubBtn.ToolTip = BuildButtonTooltip(sub);
+                        SetTooltipMedia(smartSubBtn, sub);
                         ApplyHighlightToButton(smartSubBtn, sub);
                         
                         // Execute __selfinit__ for SmartButton in pulldown
@@ -675,6 +689,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         {
                             ApplyIconToPulldownSubButtonThemeAware(linkSubBtn, sub, component);
                             linkSubBtn.ToolTip = BuildButtonTooltip(sub);
+                            SetTooltipMedia(linkSubBtn, sub);
                             ApplyHighlightToButton(linkSubBtn, sub);
                         }
                     }
@@ -767,6 +782,233 @@ namespace pyRevitAssemblyBuilder.UIManager
             }
 
             return tooltip;
+        }
+
+        /// <summary>
+        /// Sets tooltip media (image or video) on a RibbonItem using AdWindows API.
+        /// Matches the Python implementation in pyrevit.coreutils.ribbon.
+        /// </summary>
+        /// <param name="ribbonItem">The Revit ribbon item to set media on</param>
+        /// <param name="component">The component containing media file info</param>
+        private void SetTooltipMedia(RibbonItem ribbonItem, ParsedComponent component)
+        {
+            if (!component.HasMediaFile || string.IsNullOrEmpty(component.MediaFile))
+                return;
+
+            try
+            {
+                var extension = Path.GetExtension(component.MediaFile).ToLowerInvariant();
+                
+                if (extension == UIManagerConstants.TOOLTIP_IMAGE_FORMAT)
+                {
+                    SetTooltipImage(ribbonItem, component);
+                }
+                else if (extension == UIManagerConstants.TOOLTIP_VIDEO_FORMAT_MP4 || 
+                         extension == UIManagerConstants.TOOLTIP_VIDEO_FORMAT_SWF)
+                {
+                    SetTooltipVideo(ribbonItem, component);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Failed to set tooltip media for '{component.DisplayName}'. Exception: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets a tooltip image on a RibbonItem using AdWindows API.
+        /// Matches the Python set_tooltip_image implementation.
+        /// </summary>
+        private void SetTooltipImage(RibbonItem ribbonItem, ParsedComponent component)
+        {
+            try
+            {
+                // Get AdWindows object using reflection-like approach
+                var adWindowsRibbonItem = GetAdWindowsRibbonItem(ribbonItem);
+                if (adWindowsRibbonItem == null)
+                    return;
+
+                // Get button title for tooltip
+                var buttonTitle = GetButtonTextWithConfigIndicator(component);
+                var existingTooltip = ribbonItem.ToolTip as string;
+
+                // Create RibbonToolTip
+                var ribbonToolTip = new Autodesk.Windows.RibbonToolTip
+                {
+                    Title = buttonTitle,
+                    Content = existingTooltip
+                };
+
+                // Create StackPanel with image
+                var stackPanel = new System.Windows.Controls.StackPanel();
+                var image = new System.Windows.Controls.Image();
+                
+                // Load the image
+                var bitmapImage = new BitmapImage();
+                bitmapImage.BeginInit();
+                bitmapImage.UriSource = new Uri(component.MediaFile);
+                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                bitmapImage.EndInit();
+                bitmapImage.Freeze();
+                
+                image.Source = bitmapImage;
+                stackPanel.Children.Add(image);
+
+                ribbonToolTip.ExpandedContent = stackPanel;
+                adWindowsRibbonItem.ToolTip = ribbonToolTip;
+                
+                // Resolve the tooltip to apply changes
+                typeof(Autodesk.Windows.RibbonItem).GetMethod("ResolveToolTip", 
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+                    ?.Invoke(adWindowsRibbonItem, null);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Failed to set tooltip image for '{component.DisplayName}'. Exception: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets a tooltip video on a RibbonItem using AdWindows API.
+        /// Matches the Python set_tooltip_video implementation.
+        /// Video loops automatically when it ends.
+        /// </summary>
+        private void SetTooltipVideo(RibbonItem ribbonItem, ParsedComponent component)
+        {
+            try
+            {
+                // Get AdWindows object
+                var adWindowsRibbonItem = GetAdWindowsRibbonItem(ribbonItem);
+                if (adWindowsRibbonItem == null)
+                    return;
+
+                // Get button title for tooltip
+                var buttonTitle = GetButtonTextWithConfigIndicator(component);
+                var existingTooltip = ribbonItem.ToolTip as string;
+
+                // Create RibbonToolTip
+                var ribbonToolTip = new Autodesk.Windows.RibbonToolTip
+                {
+                    Title = buttonTitle,
+                    Content = existingTooltip
+                };
+
+                // Create StackPanel with MediaElement (video player)
+                var stackPanel = new System.Windows.Controls.StackPanel();
+                var mediaElement = new System.Windows.Controls.MediaElement
+                {
+                    Source = new Uri(component.MediaFile),
+                    LoadedBehavior = System.Windows.Controls.MediaState.Manual,
+                    UnloadedBehavior = System.Windows.Controls.MediaState.Manual
+                };
+
+                // Set up event handlers for looping and auto-play
+                mediaElement.MediaEnded += (sender, args) =>
+                {
+                    var me = sender as System.Windows.Controls.MediaElement;
+                    if (me != null)
+                    {
+                        me.Position = TimeSpan.Zero;
+                        me.Play();
+                    }
+                };
+
+                mediaElement.Loaded += (sender, args) =>
+                {
+                    var me = sender as System.Windows.Controls.MediaElement;
+                    me?.Play();
+                };
+
+                stackPanel.Children.Add(mediaElement);
+
+                ribbonToolTip.ExpandedContent = stackPanel;
+                adWindowsRibbonItem.ToolTip = ribbonToolTip;
+                
+                // Resolve the tooltip to apply changes
+                typeof(Autodesk.Windows.RibbonItem).GetMethod("ResolveToolTip", 
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+                    ?.Invoke(adWindowsRibbonItem, null);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Failed to set tooltip video for '{component.DisplayName}'. Exception: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gets the AdWindows RibbonItem from a Revit RibbonItem.
+        /// Uses the internal 'getRibbonItem' method via reflection, matching the Python implementation
+        /// in pyrevit.coreutils.ribbon.GenericPyRevitUIContainer.get_adwindows_object().
+        /// </summary>
+        private Autodesk.Windows.RibbonItem GetAdWindowsRibbonItem(RibbonItem ribbonItem)
+        {
+            try
+            {
+                // Python implementation uses reflection to call the private 'getRibbonItem' method:
+                // getRibbonItemMethod = rvtapi_obj.GetType().GetMethod(
+                //     "getRibbonItem", BindingFlags.NonPublic | BindingFlags.Instance)
+                // return getRibbonItemMethod.Invoke(rvtapi_obj, None)
+                
+                var getRibbonItemMethod = ribbonItem.GetType().GetMethod(
+                    "getRibbonItem",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                
+                if (getRibbonItemMethod != null)
+                {
+                    return getRibbonItemMethod.Invoke(ribbonItem, null) as Autodesk.Windows.RibbonItem;
+                }
+
+                // Fallback: Search the ribbon for matching item (less reliable)
+                _logger.Debug($"Could not find getRibbonItem method on {ribbonItem.GetType().Name}, falling back to ribbon search");
+                var ribbon = ComponentManager.Ribbon;
+                if (ribbon == null)
+                    return null;
+
+                foreach (var tab in ribbon.Tabs)
+                {
+                    foreach (var panel in tab.Panels)
+                    {
+                        var found = FindRibbonItemByName(panel.Source.Items, ribbonItem.Name);
+                        if (found != null)
+                            return found;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Failed to get AdWindows RibbonItem. Exception: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Recursively searches for a RibbonItem by name in a collection.
+        /// </summary>
+        private Autodesk.Windows.RibbonItem FindRibbonItemByName(
+            System.Collections.IEnumerable items, string name)
+        {
+            if (items == null || string.IsNullOrEmpty(name))
+                return null;
+
+            foreach (var item in items)
+            {
+                if (item is Autodesk.Windows.RibbonItem ribbonItem)
+                {
+                    if (ribbonItem.AutomationName == name || ribbonItem.Id == name)
+                        return ribbonItem;
+
+                    // Check children if it's a container (like RibbonRowPanel)
+                    if (item is Autodesk.Windows.RibbonRowPanel rowPanel)
+                    {
+                        var found = FindRibbonItemByName(rowPanel.Items, name);
+                        if (found != null)
+                            return found;
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

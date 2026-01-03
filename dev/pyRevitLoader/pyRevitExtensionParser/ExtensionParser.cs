@@ -577,6 +577,9 @@ namespace pyRevitExtensionParser
                     (onIconPath, onIconDarkPath, offIconPath, offIconDarkPath) = ParseToggleIcons(dir);
                 }
 
+                // Look for tooltip media file (tooltip.mp4, tooltip.swf, tooltip.png)
+                var mediaFile = FindMediaFile(dir);
+
                 var bundleFile = Path.Combine(dir, "bundle.yaml");
                 
                 // Then parse bundle and override with bundle values if they exist
@@ -746,7 +749,8 @@ namespace pyRevitExtensionParser
                     OnIconPath = onIconPath,
                     OnIconDarkPath = onIconDarkPath,
                     OffIconPath = offIconPath,
-                    OffIconDarkPath = offIconDarkPath
+                    OffIconDarkPath = offIconDarkPath,
+                    MediaFile = mediaFile
                 });
             }
 
@@ -1303,6 +1307,47 @@ namespace pyRevitExtensionParser
 
             return (onIconPath, onIconDarkPath, offIconPath, offIconDarkPath);
         }
+
+        /// <summary>
+        /// Finds the tooltip media file (tooltip.mp4, tooltip.swf, or tooltip.png) in the component directory.
+        /// Matches the Python implementation in genericcomps.py where media_file is discovered by name 'tooltip'.
+        /// </summary>
+        /// <param name="componentDirectory">The directory containing the component</param>
+        /// <returns>Full path to the media file if found, null otherwise</returns>
+        private static string FindMediaFile(string componentDirectory)
+        {
+            if (!Directory.Exists(componentDirectory))
+                return null;
+
+            try
+            {
+                var files = GetFilesInDirectory(componentDirectory, "*", SearchOption.TopDirectoryOnly);
+                
+                foreach (var file in files)
+                {
+                    var fileName = Path.GetFileName(file).ToLowerInvariant();
+                    var fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+                    
+                    // Match by name 'tooltip' (like Python's finder='name' mode)
+                    // Supports: tooltip.mp4, tooltip.swf, tooltip.png
+                    if (fileNameWithoutExt == "tooltip")
+                    {
+                        var ext = Path.GetExtension(fileName);
+                        if (ext == ".mp4" || ext == ".swf" || ext == ".png")
+                        {
+                            return file;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // If we can't read the directory, just return null
+            }
+
+            return null;
+        }
+
         public enum CommandComponentType
         {
             Unknown,

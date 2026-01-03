@@ -76,6 +76,17 @@ namespace pyRevitExtensionParser
             !string.IsNullOrEmpty(OnIconPath) || !string.IsNullOrEmpty(OffIconPath);
         
         /// <summary>
+        /// Path to the tooltip media file (tooltip.mp4, tooltip.swf, or tooltip.png).
+        /// Used for video or image tooltips on buttons.
+        /// </summary>
+        public string MediaFile { get; set; }
+        
+        /// <summary>
+        /// Whether this component has a tooltip media file.
+        /// </summary>
+        public bool HasMediaFile => !string.IsNullOrEmpty(MediaFile);
+        
+        /// <summary>
         /// Panel background color (ARGB hex format, e.g., '#BB005591')
         /// </summary>
         public string PanelBackground { get; set; }
