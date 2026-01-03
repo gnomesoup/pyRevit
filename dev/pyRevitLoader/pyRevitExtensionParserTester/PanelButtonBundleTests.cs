@@ -89,7 +89,7 @@ namespace pyRevitExtensionParserTest
 
                     Assert.AreEqual(CommandComponentType.PushButton, pushButton.Type);
                     Assert.IsNotNull(pushButton.Context, "Context should be parsed from bundle.yaml");
-                    Assert.AreEqual("selection", pushButton.Context);
+                    Assert.AreEqual("(selection)", pushButton.Context);
                     Assert.AreEqual("Selection Test", pushButton.Title);
                     Assert.AreEqual("Test command that requires element selection", pushButton.Tooltip);
 
@@ -439,7 +439,7 @@ print('test')");
 
                     Assert.AreEqual(CommandComponentType.PanelButton, panelButton.Type);
                     Assert.IsNotNull(panelButton.Context, "Context should be parsed from bundle.yaml");
-                    Assert.AreEqual("zero-doc", panelButton.Context);
+                    Assert.AreEqual("(zero-doc)", panelButton.Context);
 
                     return;
                 }

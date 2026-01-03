@@ -149,11 +149,17 @@ namespace pyRevitExtensionParserTest
                     CommandComponentType.PushButton,
                     CommandComponentType.PanelButton,
                     CommandComponentType.PullDown,
+                    CommandComponentType.SplitButton,
+                    CommandComponentType.SplitPushButton,
                     CommandComponentType.Stack,
                     CommandComponentType.SmartButton,
+                    CommandComponentType.LinkButton,
+                    CommandComponentType.InvokeButton,
                     CommandComponentType.Separator,
                     CommandComponentType.NoButton,
-                    CommandComponentType.UrlButton
+                    CommandComponentType.UrlButton,
+                    CommandComponentType.ContentButton,
+                    CommandComponentType.ComboBox
                 };
                 
                 // Validate tab structure
