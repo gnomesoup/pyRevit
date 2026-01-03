@@ -48,8 +48,12 @@ namespace PyRevitLoader {
                 return true; // Don't deactivate
             }
 
-            // Only process Python scripts
+            // Only process Python scripts for __selfinit__
+            // VB (.vb) and Ruby (.rb) scripts don't support __selfinit__ - they implement IExternalCommand
+            // and are executed when clicked, not during initialization. They work as regular buttons.
+            // C# (.cs) scripts also implement IExternalCommand and don't have __selfinit__.
             if (!scriptPath.EndsWith(".py", StringComparison.OrdinalIgnoreCase)) {
+                Log($"Script '{scriptPath}' is not Python - skipping __selfinit__ (VB/Ruby/C# scripts don't support __selfinit__)");
                 return true;
             }
 

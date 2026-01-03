@@ -403,7 +403,7 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
             }
             else
             {
-                // For non-Dynamo scripts (Python, C#, etc.)
+                // For non-Dynamo scripts (Python, C#, VB, Ruby, etc.)
                 configs["full_frame"] = cmd.Engine?.FullFrame ?? false;
                 configs["persistent"] = cmd.Engine?.Persistent ?? false;
                 

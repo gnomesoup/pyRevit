@@ -622,16 +622,27 @@ namespace pyRevitAssemblyBuilder.UIManager
             catch { /* Ignore cleanup errors */ }
                 }
 
+        /// <summary>
+        /// Finds the script path for a ComboBox component.
+        /// Only Python scripts (.py) are supported for ComboBox event handlers.
+        /// VB (.vb) and Ruby (.rb) scripts cannot define Python-style event handlers
+        /// and are not supported for ComboBox initialization.
+        /// </summary>
         private string FindScriptPath(ParsedComponent component)
         {
             if (string.IsNullOrEmpty(component.Directory))
                 return null;
 
+            // Only Python scripts can define event handlers for ComboBoxes
+            // VB and Ruby scripts implement IExternalCommand and don't support dynamic event binding
             var scriptPath = Path.Combine(component.Directory, "script.py");
             if (File.Exists(scriptPath))
                 return scriptPath;
 
-            if (!string.IsNullOrEmpty(component.ScriptPath) && File.Exists(component.ScriptPath))
+            // Also check if component's ScriptPath is a Python file
+            if (!string.IsNullOrEmpty(component.ScriptPath) && 
+                component.ScriptPath.EndsWith(".py", StringComparison.OrdinalIgnoreCase) &&
+                File.Exists(component.ScriptPath))
                 return component.ScriptPath;
 
             return null;
