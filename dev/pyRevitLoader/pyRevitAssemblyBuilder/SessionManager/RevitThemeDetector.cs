@@ -1,4 +1,5 @@
 using System;
+using pyRevitAssemblyBuilder.Interfaces;
 
 namespace pyRevitAssemblyBuilder.SessionManager
 {
@@ -7,13 +8,13 @@ namespace pyRevitAssemblyBuilder.SessionManager
     /// </summary>
     public class RevitThemeDetector
     {
-        private readonly LoggingHelper _logger;
+        private readonly ILogger _logger;
         private static bool? _cachedTheme;
         private static bool _themeDetected;
 
-        public RevitThemeDetector(object pythonLogger)
+        public RevitThemeDetector(ILogger logger)
         {
-            _logger = new LoggingHelper(pythonLogger ?? throw new ArgumentNullException(nameof(pythonLogger)));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>

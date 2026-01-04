@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Autodesk.Revit.UI;
 using pyRevitAssemblyBuilder.AssemblyMaker;
+using pyRevitAssemblyBuilder.Interfaces;
 using Autodesk.Windows;
 using RibbonPanel = Autodesk.Revit.UI.RibbonPanel;
 using RibbonButton = Autodesk.Windows.RibbonButton;
@@ -23,9 +24,9 @@ namespace pyRevitAssemblyBuilder.UIManager
     /// <summary>
     /// Service for building Revit UI elements from parsed extensions.
     /// </summary>
-    public class UIManagerService
+    public class UIManagerService : IUIManagerService
     {
-        private readonly LoggingHelper _logger;
+        private readonly ILogger _logger;
         private readonly UIApplication _uiApp;
         private ParsedExtension _currentExtension;
         private ComboBoxScriptInitializer _comboBoxScriptInitializer;
@@ -45,14 +46,14 @@ namespace pyRevitAssemblyBuilder.UIManager
         /// Initializes a new instance of the <see cref="UIManagerService"/> class.
         /// </summary>
         /// <param name="uiApp">The Revit UIApplication instance.</param>
-        /// <param name="pythonLogger">The Python logger instance.</param>
-        public UIManagerService(UIApplication uiApp, object pythonLogger)
+        /// <param name="logger">The logger instance.</param>
+        public UIManagerService(UIApplication uiApp, ILogger logger)
         {
             _uiApp = uiApp;
-            _logger = new LoggingHelper(pythonLogger ?? throw new ArgumentNullException(nameof(pythonLogger)));
-            _comboBoxScriptInitializer = new ComboBoxScriptInitializer(uiApp, pythonLogger);
-            _smartButtonScriptInitializer = new SmartButtonScriptInitializer(uiApp, pythonLogger);
-            _themeDetector = new RevitThemeDetector(pythonLogger);
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _comboBoxScriptInitializer = new ComboBoxScriptInitializer(uiApp, logger);
+            _smartButtonScriptInitializer = new SmartButtonScriptInitializer(uiApp, logger);
+            _themeDetector = new RevitThemeDetector(logger);
         }
 
         /// <summary>

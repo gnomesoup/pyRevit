@@ -1,4 +1,5 @@
-﻿using pyRevitExtensionParser;
+﻿using pyRevitAssemblyBuilder.Interfaces;
+using pyRevitExtensionParser;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,13 +7,13 @@ using System.Linq;
 
 namespace pyRevitAssemblyBuilder.SessionManager
 {
-    public class HookManager
+    public class HookManager : IHookManager
     {
-        private readonly LoggingHelper _logger;
+        private readonly ILogger _logger;
 
-        public HookManager(object pythonLogger)
+        public HookManager(ILogger logger)
         {
-            _logger = new LoggingHelper(pythonLogger ?? throw new ArgumentNullException(nameof(pythonLogger)));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public void RegisterHooks(ParsedExtension extension)

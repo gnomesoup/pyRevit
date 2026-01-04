@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Autodesk.Revit.UI;
+using pyRevitAssemblyBuilder.Interfaces;
 using pyRevitExtensionParser;
 using pyRevitAssemblyBuilder.SessionManager;
 using RevitComboBoxMember = Autodesk.Revit.UI.ComboBoxMember;
@@ -123,7 +124,7 @@ namespace pyRevitAssemblyBuilder.UIManager
     /// </summary>
     public class ComboBoxScriptInitializer
     {
-        private readonly LoggingHelper _logger;
+        private readonly ILogger _logger;
         private readonly UIApplication _uiApp;
         
         // Cached reflection types and methods for IronPython
@@ -136,10 +137,10 @@ namespace pyRevitAssemblyBuilder.UIManager
         private static bool _initialized;
         private static bool _initializationFailed;
         
-        public ComboBoxScriptInitializer(UIApplication uiApp, object pythonLogger)
+        public ComboBoxScriptInitializer(UIApplication uiApp, ILogger logger)
         {
             _uiApp = uiApp;
-            _logger = new LoggingHelper(pythonLogger);
+            _logger = logger;
             EnsureInitialized();
         }
 

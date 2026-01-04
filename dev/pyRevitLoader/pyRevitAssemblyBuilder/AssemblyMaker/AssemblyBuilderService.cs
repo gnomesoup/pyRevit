@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Lokad.ILPack;
 using System.Text;
+using pyRevitAssemblyBuilder.Interfaces;
 using pyRevitExtensionParser;
 using pyRevitAssemblyBuilder.SessionManager;
 
@@ -34,9 +35,9 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
     /// <summary>
     /// Service for building extension assemblies from parsed extensions.
     /// </summary>
-    public class AssemblyBuilderService
+    public class AssemblyBuilderService : IAssemblyBuilderService
     {
-        private readonly LoggingHelper _logger;
+        private readonly ILogger _logger;
         private readonly string _revitVersion;
         private readonly AssemblyBuildStrategy _buildStrategy;
         private static readonly string _executingAssemblyLocation = Assembly.GetExecutingAssembly().Location;
@@ -47,13 +48,13 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
         /// </summary>
         /// <param name="revitVersion">The Revit version number (e.g., "2024").</param>
         /// <param name="buildStrategy">The build strategy to use for creating assemblies.</param>
-        /// <param name="pythonLogger">The Python logger instance.</param>
-        /// <exception cref="ArgumentNullException">Thrown when revitVersion or pythonLogger is null.</exception>
-        public AssemblyBuilderService(string revitVersion, AssemblyBuildStrategy buildStrategy, object pythonLogger)
+        /// <param name="logger">The logger instance.</param>
+        /// <exception cref="ArgumentNullException">Thrown when revitVersion or logger is null.</exception>
+        public AssemblyBuilderService(string revitVersion, AssemblyBuildStrategy buildStrategy, ILogger logger)
         {
             _revitVersion = revitVersion ?? throw new ArgumentNullException(nameof(revitVersion));
             _buildStrategy = buildStrategy;
-            _logger = new LoggingHelper(pythonLogger ?? throw new ArgumentNullException(nameof(pythonLogger)));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             if (_buildStrategy == AssemblyBuildStrategy.ILPack)
             {

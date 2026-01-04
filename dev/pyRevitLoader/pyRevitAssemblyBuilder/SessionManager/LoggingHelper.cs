@@ -1,13 +1,14 @@
 #nullable enable
 using System;
 using System.Diagnostics;
+using pyRevitAssemblyBuilder.Interfaces;
 
 namespace pyRevitAssemblyBuilder.SessionManager
 {
     /// <summary>
     /// Helper class for logging using Python's logger.
     /// </summary>
-    public class LoggingHelper
+    public class LoggingHelper : ILogger
     {
         private const string LogPrefix = "[pyRevit]";
         private readonly dynamic? _pythonLogger;

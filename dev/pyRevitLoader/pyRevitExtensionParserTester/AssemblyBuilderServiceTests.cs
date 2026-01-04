@@ -1,4 +1,5 @@
 using pyRevitAssemblyBuilder.AssemblyMaker;
+using pyRevitAssemblyBuilder.Interfaces;
 
 namespace pyRevitExtensionParserTester
 {
@@ -10,14 +11,14 @@ namespace pyRevitExtensionParserTester
     {
         private AssemblyBuilderService _service;
         private const string TestRevitVersion = "2024";
-        private object _mockPythonLogger;
+        private ILogger _mockLogger;
 
         [SetUp]
         public void SetUp()
         {
-            // Create a mock python logger (can be null for tests or a mock object)
-            _mockPythonLogger = new MockPythonLogger();
-            _service = new AssemblyBuilderService(TestRevitVersion, AssemblyBuildStrategy.ILPack, _mockPythonLogger);
+            // Create a mock logger for tests
+            _mockLogger = new MockPythonLogger();
+            _service = new AssemblyBuilderService(TestRevitVersion, AssemblyBuildStrategy.ILPack, _mockLogger);
         }
 
         [Test]
@@ -25,14 +26,14 @@ namespace pyRevitExtensionParserTester
         {
             // Act & Assert
             Assert.Throws<ArgumentNullException>(() => 
-                new AssemblyBuilderService(null, AssemblyBuildStrategy.ILPack, _mockPythonLogger));
+                new AssemblyBuilderService(null, AssemblyBuildStrategy.ILPack, _mockLogger));
         }
 
         [Test]
         public void Constructor_WithValidParameters_CreatesInstance()
         {
             // Act
-            var service = new AssemblyBuilderService(TestRevitVersion, AssemblyBuildStrategy.Roslyn, _mockPythonLogger);
+            var service = new AssemblyBuilderService(TestRevitVersion, AssemblyBuildStrategy.Roslyn, _mockLogger);
 
             // Assert
             Assert.IsNotNull(service);
@@ -54,14 +55,14 @@ namespace pyRevitExtensionParserTester
     }
 
     /// <summary>
-    /// Mock Python logger for testing purposes.
+    /// Mock logger for testing purposes that implements ILogger.
     /// </summary>
-    public class MockPythonLogger
+    public class MockPythonLogger : ILogger
     {
-        public void debug(string message) { }
-        public void info(string message) { }
-        public void warning(string message) { }
-        public void error(string message) { }
+        public void Debug(string message) { }
+        public void Info(string message) { }
+        public void Warning(string message) { }
+        public void Error(string message) { }
     }
 }
 

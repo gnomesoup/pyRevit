@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using Autodesk.Revit.UI;
 using pyRevitAssemblyBuilder.AssemblyMaker;
+using pyRevitAssemblyBuilder.Interfaces;
 using pyRevitAssemblyBuilder.UIManager;
 using pyRevitExtensionParser;
 
@@ -14,14 +15,14 @@ namespace pyRevitAssemblyBuilder.SessionManager
     /// <summary>
     /// Service for managing pyRevit session loading, including assembly building and UI creation.
     /// </summary>
-    public class SessionManagerService
+    public class SessionManagerService : ISessionManagerService
     {
-        private readonly AssemblyBuilderService _assemblyBuilder;
-        private readonly ExtensionManagerService _extensionManager;
-        private readonly HookManager _hookManager;
-        private readonly UIManagerService _uiManager;
+        private readonly IAssemblyBuilderService _assemblyBuilder;
+        private readonly IExtensionManagerService _extensionManager;
+        private readonly IHookManager _hookManager;
+        private readonly IUIManagerService _uiManager;
         private readonly UIApplication _uiApp;
-        private readonly LoggingHelper _logger;
+        private readonly ILogger _logger;
         
         // These fields are initialized in InitializeScriptExecutor(), not the constructor
         private Assembly? _runtimeAssembly;
@@ -42,23 +43,23 @@ namespace pyRevitAssemblyBuilder.SessionManager
         /// <param name="extensionManager">Service for managing extensions.</param>
         /// <param name="hookManager">Service for managing hooks.</param>
         /// <param name="uiManager">Service for building UI elements.</param>
-        /// <param name="pythonLogger">Python logger instance for logging.</param>
+        /// <param name="logger">Logger instance for logging.</param>
         /// <exception cref="ArgumentNullException">Thrown when uiManager is null or does not have a valid UIApplication.</exception>
         public SessionManagerService(
-            AssemblyBuilderService assemblyBuilder,
-            ExtensionManagerService extensionManager,
-            HookManager hookManager,
-            UIManagerService uiManager,
-            object? pythonLogger = null)
+            IAssemblyBuilderService assemblyBuilder,
+            IExtensionManagerService extensionManager,
+            IHookManager hookManager,
+            IUIManagerService uiManager,
+            ILogger logger)
         {
-            _assemblyBuilder = assemblyBuilder;
-            _extensionManager = extensionManager;
-            _hookManager = hookManager;
-            _uiManager = uiManager;
-            _logger = new LoggingHelper(pythonLogger);
+            _assemblyBuilder = assemblyBuilder ?? throw new ArgumentNullException(nameof(assemblyBuilder));
+            _extensionManager = extensionManager ?? throw new ArgumentNullException(nameof(extensionManager));
+            _hookManager = hookManager ?? throw new ArgumentNullException(nameof(hookManager));
+            _uiManager = uiManager ?? throw new ArgumentNullException(nameof(uiManager));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
             // Get UIApplication from UIManagerService via public property
-            _uiApp = uiManager?.UIApplication 
+            _uiApp = uiManager.UIApplication 
                 ?? throw new ArgumentNullException(nameof(uiManager), "UIManagerService must have a valid UIApplication.");
         }
 

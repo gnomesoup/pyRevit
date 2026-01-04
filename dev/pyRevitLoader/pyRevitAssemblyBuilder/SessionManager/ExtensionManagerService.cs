@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using System.Linq;
+using pyRevitAssemblyBuilder.Interfaces;
 using pyRevitExtensionParser;
 using static pyRevitExtensionParser.ExtensionParser;
 
@@ -9,7 +10,7 @@ namespace pyRevitAssemblyBuilder.SessionManager
     /// <summary>
     /// Service for managing and querying installed pyRevit extensions.
     /// </summary>
-    public class ExtensionManagerService
+    public class ExtensionManagerService : IExtensionManagerService
     {
         private List<ParsedExtension>? _cachedExtensions;
 

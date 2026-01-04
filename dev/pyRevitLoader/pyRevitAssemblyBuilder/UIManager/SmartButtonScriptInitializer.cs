@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using Autodesk.Revit.UI;
+using pyRevitAssemblyBuilder.Interfaces;
 using pyRevitExtensionParser;
 using pyRevitAssemblyBuilder.SessionManager;
 
@@ -250,7 +251,7 @@ namespace pyRevitAssemblyBuilder.UIManager
     /// </summary>
     public class SmartButtonScriptInitializer
     {
-        private readonly LoggingHelper _logger;
+        private readonly ILogger _logger;
         private readonly UIApplication _uiApp;
         private readonly RevitThemeDetector _themeDetector;
         private static Assembly _pyRevitLoaderAssembly;
@@ -263,11 +264,11 @@ namespace pyRevitAssemblyBuilder.UIManager
         private bool _instanceInitialized;
         private bool _instanceInitializationFailed;
 
-        public SmartButtonScriptInitializer(UIApplication uiApp, object pythonLogger)
+        public SmartButtonScriptInitializer(UIApplication uiApp, ILogger logger)
         {
             _uiApp = uiApp;
-            _logger = new LoggingHelper(pythonLogger);
-            _themeDetector = new RevitThemeDetector(pythonLogger);
+            _logger = logger;
+            _themeDetector = new RevitThemeDetector(logger);
             
             // Do static initialization once
             EnsureStaticInitialized();
