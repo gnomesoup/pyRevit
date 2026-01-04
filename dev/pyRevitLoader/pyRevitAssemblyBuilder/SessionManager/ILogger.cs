@@ -1,6 +1,6 @@
 #nullable enable
 
-namespace pyRevitAssemblyBuilder.Interfaces
+namespace pyRevitAssemblyBuilder.SessionManager
 {
     /// <summary>
     /// Interface for logging services used throughout pyRevit assembly builder.

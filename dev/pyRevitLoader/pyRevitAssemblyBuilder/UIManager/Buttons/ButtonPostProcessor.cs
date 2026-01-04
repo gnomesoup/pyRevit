@@ -3,12 +3,12 @@ using System;
 using System.Collections;
 using Autodesk.Revit.UI;
 using Autodesk.Windows;
-using pyRevitAssemblyBuilder.Interfaces;
 using pyRevitAssemblyBuilder.UIManager.Icons;
 using pyRevitAssemblyBuilder.UIManager.Tooltips;
 using pyRevitExtensionParser;
 using RibbonItem = Autodesk.Revit.UI.RibbonItem;
 using RibbonButton = Autodesk.Windows.RibbonButton;
+using pyRevitAssemblyBuilder.SessionManager;
 
 namespace pyRevitAssemblyBuilder.UIManager.Buttons
 {

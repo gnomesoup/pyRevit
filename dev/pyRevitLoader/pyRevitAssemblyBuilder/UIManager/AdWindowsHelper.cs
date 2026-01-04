@@ -3,7 +3,7 @@ using System;
 using System.Collections;
 using Autodesk.Revit.UI;
 using Autodesk.Windows;
-using pyRevitAssemblyBuilder.Interfaces;
+using pyRevitAssemblyBuilder.SessionManager;
 using RibbonItem = Autodesk.Revit.UI.RibbonItem;
 
 namespace pyRevitAssemblyBuilder.UIManager

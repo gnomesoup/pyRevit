@@ -1,6 +1,6 @@
 #nullable enable
 
-namespace pyRevitAssemblyBuilder.Interfaces
+namespace pyRevitAssemblyBuilder.SessionManager
 {
     /// <summary>
     /// Interface for managing pyRevit session loading, including assembly building and UI creation.

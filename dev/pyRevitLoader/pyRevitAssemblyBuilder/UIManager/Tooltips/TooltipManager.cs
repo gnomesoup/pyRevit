@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using Autodesk.Revit.UI;
 using Autodesk.Windows;
-using pyRevitAssemblyBuilder.Interfaces;
+using pyRevitAssemblyBuilder.SessionManager;
 using pyRevitExtensionParser;
 using RibbonItem = Autodesk.Revit.UI.RibbonItem;
 

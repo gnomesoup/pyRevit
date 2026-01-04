@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Autodesk.Revit.UI;
-using pyRevitAssemblyBuilder.Interfaces;
 using pyRevitExtensionParser;
 using pyRevitAssemblyBuilder.SessionManager;
 using RevitComboBoxMember = Autodesk.Revit.UI.ComboBoxMember;

@@ -1,5 +1,4 @@
 using System;
-using pyRevitAssemblyBuilder.Interfaces;
 
 namespace pyRevitAssemblyBuilder.SessionManager
 {

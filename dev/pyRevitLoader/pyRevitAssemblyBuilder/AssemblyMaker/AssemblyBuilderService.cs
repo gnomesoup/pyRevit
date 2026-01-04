@@ -11,7 +11,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Lokad.ILPack;
 using System.Text;
-using pyRevitAssemblyBuilder.Interfaces;
 using pyRevitExtensionParser;
 using pyRevitAssemblyBuilder.SessionManager;
 

@@ -1,5 +1,5 @@
 using pyRevitAssemblyBuilder.AssemblyMaker;
-using pyRevitAssemblyBuilder.Interfaces;
+using pyRevitAssemblyBuilder.SessionManager;
 
 namespace pyRevitExtensionParserTester
 {

@@ -1,7 +1,8 @@
 #nullable enable
+using pyRevitAssemblyBuilder;
 using pyRevitExtensionParser;
 
-namespace pyRevitAssemblyBuilder.Interfaces
+namespace pyRevitAssemblyBuilder.SessionManager
 {
     /// <summary>
     /// Interface for managing extension hooks and checks.

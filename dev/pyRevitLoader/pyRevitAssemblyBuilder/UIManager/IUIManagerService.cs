@@ -3,7 +3,7 @@ using Autodesk.Revit.UI;
 using pyRevitAssemblyBuilder.AssemblyMaker;
 using pyRevitExtensionParser;
 
-namespace pyRevitAssemblyBuilder.Interfaces
+namespace pyRevitAssemblyBuilder.UIManager
 {
     /// <summary>
     /// Interface for building Revit UI elements from parsed extensions.

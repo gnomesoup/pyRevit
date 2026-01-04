@@ -1,5 +1,4 @@
-﻿using pyRevitAssemblyBuilder.Interfaces;
-using pyRevitExtensionParser;
+﻿using pyRevitExtensionParser;
 using System;
 using System.Collections.Generic;
 using System.IO;

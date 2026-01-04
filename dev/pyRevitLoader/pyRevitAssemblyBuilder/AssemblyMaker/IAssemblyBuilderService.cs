@@ -1,9 +1,8 @@
 #nullable enable
 using System.Collections.Generic;
-using pyRevitAssemblyBuilder.AssemblyMaker;
 using pyRevitExtensionParser;
 
-namespace pyRevitAssemblyBuilder.Interfaces
+namespace pyRevitAssemblyBuilder.AssemblyMaker
 {
     /// <summary>
     /// Interface for building extension assemblies from parsed extensions.

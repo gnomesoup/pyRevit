@@ -1,7 +1,6 @@
 #nullable enable
 using System;
 using System.Diagnostics;
-using pyRevitAssemblyBuilder.Interfaces;
 
 namespace pyRevitAssemblyBuilder.SessionManager
 {

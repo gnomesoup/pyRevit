@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using pyRevitExtensionParser;
 
-namespace pyRevitAssemblyBuilder.Interfaces
+namespace pyRevitAssemblyBuilder.SessionManager
 {
     /// <summary>
     /// Interface for managing and querying installed pyRevit extensions.
