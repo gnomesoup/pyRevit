@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
-using System.Windows;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Autodesk.Revit.UI;
 using pyRevitAssemblyBuilder.AssemblyMaker;
 using pyRevitAssemblyBuilder.Interfaces;
+using pyRevitAssemblyBuilder.UIManager.Buttons;
 using pyRevitAssemblyBuilder.UIManager.Icons;
-using pyRevitAssemblyBuilder.UIManager.Tooltips;
 using Autodesk.Windows;
 using RibbonPanel = Autodesk.Revit.UI.RibbonPanel;
 using RibbonButton = Autodesk.Windows.RibbonButton;
@@ -17,7 +15,6 @@ using RibbonItem = Autodesk.Revit.UI.RibbonItem;
 using RevitComboBoxMember = Autodesk.Revit.UI.ComboBoxMember;
 using static pyRevitExtensionParser.ExtensionParser;
 using pyRevitExtensionParser;
-using pyRevitAssemblyBuilder.SessionManager;
 
 namespace pyRevitAssemblyBuilder.UIManager
 {
@@ -27,8 +24,7 @@ namespace pyRevitAssemblyBuilder.UIManager
     public class UIManagerService : IUIManagerService
     {
         private readonly ILogger _logger;
-        private readonly IIconManager _iconManager;
-        private readonly ITooltipManager _tooltipManager;
+        private readonly IButtonPostProcessor _buttonPostProcessor;
         private readonly UIApplication _uiApp;
         private ParsedExtension _currentExtension;
         private ComboBoxScriptInitializer _comboBoxScriptInitializer;
@@ -44,14 +40,12 @@ namespace pyRevitAssemblyBuilder.UIManager
         /// </summary>
         /// <param name="uiApp">The Revit UIApplication instance.</param>
         /// <param name="logger">The logger instance.</param>
-        /// <param name="iconManager">The icon manager instance.</param>
-        /// <param name="tooltipManager">The tooltip manager instance.</param>
-        public UIManagerService(UIApplication uiApp, ILogger logger, IIconManager iconManager, ITooltipManager tooltipManager)
+        /// <param name="buttonPostProcessor">The button post-processor instance.</param>
+        public UIManagerService(UIApplication uiApp, ILogger logger, IButtonPostProcessor buttonPostProcessor)
         {
             _uiApp = uiApp;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _iconManager = iconManager ?? throw new ArgumentNullException(nameof(iconManager));
-            _tooltipManager = tooltipManager ?? throw new ArgumentNullException(nameof(tooltipManager));
+            _buttonPostProcessor = buttonPostProcessor ?? throw new ArgumentNullException(nameof(buttonPostProcessor));
             _comboBoxScriptInitializer = new ComboBoxScriptInitializer(uiApp, logger);
             _smartButtonScriptInitializer = new SmartButtonScriptInitializer(uiApp, logger);
         }
@@ -82,7 +76,7 @@ namespace pyRevitAssemblyBuilder.UIManager
             }
 
             // Pre-load icon files in parallel to warm OS file cache
-            _iconManager.PreloadExtensionIcons(extension);
+            _buttonPostProcessor.IconManager.PreloadExtensionIcons(extension);
 
             _currentExtension = extension;
             foreach (var component in extension.Children)
@@ -292,9 +286,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         var panelBtn = parentPanel.AddItem(panelBtnData) as PushButton;
                         if (panelBtn != null)
                         {
-                            _iconManager.ApplyIcon(panelBtn, component);
-                            _tooltipManager.ApplyTooltip(panelBtn, component);
-                            ApplyHighlightToButton(panelBtn, component);
+                            _buttonPostProcessor.Process(panelBtn, component);
                             ModifyToPanelButton(tabName, parentPanel, panelBtn);
                         }
                     }
@@ -309,9 +301,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         var btn = parentPanel.AddItem(pbData) as PushButton;
                         if (btn != null)
                         {
-                            _iconManager.ApplyIcon(btn, component);
-                            _tooltipManager.ApplyTooltip(btn, component);
-                            ApplyHighlightToButton(btn, component);
+                            _buttonPostProcessor.Process(btn, component);
                         }
                     }
                     break;
@@ -323,10 +313,8 @@ namespace pyRevitAssemblyBuilder.UIManager
                         var smartBtn = parentPanel.AddItem(sbData) as PushButton;
                         if (smartBtn != null)
                         {
-                            // Apply initial icon (may be overridden by __selfinit__)
-                            _iconManager.ApplyIcon(smartBtn, component);
-                            _tooltipManager.ApplyTooltip(smartBtn, component);
-                            ApplyHighlightToButton(smartBtn, component);
+                            // Apply initial post-processing (may be overridden by __selfinit__)
+                            _buttonPostProcessor.Process(smartBtn, component);
                             
                             // Execute __selfinit__ for SmartButton
                             // This allows the script to set initial icon state (on/off) and other customizations
@@ -349,9 +337,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                             var linkBtn = parentPanel.AddItem(linkData) as PushButton;
                             if (linkBtn != null)
                             {
-                                _iconManager.ApplyIcon(linkBtn, component);
-                                _tooltipManager.ApplyTooltip(linkBtn, component);
-                                ApplyHighlightToButton(linkBtn, component);
+                                _buttonPostProcessor.Process(linkBtn, component);
                             }
                         }
                     }
@@ -369,19 +355,13 @@ namespace pyRevitAssemblyBuilder.UIManager
                     if (!ItemExistsInPanel(parentPanel, component.DisplayName))
                     {
                         // Use Title from bundle.yaml if available, with config script indicator if applicable
-                        var splitButtonText = _tooltipManager.GetButtonTextWithConfigIndicator(component);
+                        var splitButtonText = _buttonPostProcessor.GetButtonText(component);
                         var splitData = new SplitButtonData(component.DisplayName, splitButtonText);
                         var splitBtn = parentPanel.AddItem(splitData) as SplitButton;
                         if (splitBtn != null)
                         {
-                            // Apply icon to split button
-                            _iconManager.ApplyIcon(splitBtn, component);
-
-                            // Assign tooltip to the split button itself
-                            _tooltipManager.ApplyTooltip(splitBtn, component);
-
-                            // Apply highlight to the split button itself
-                            ApplyHighlightToButton(splitBtn, component);
+                            // Apply post-processing to split button
+                            _buttonPostProcessor.Process(splitBtn, component);
 
                             foreach (var sub in component.Children ?? Enumerable.Empty<ParsedComponent>())
                             {
@@ -405,9 +385,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                     var subBtn = splitBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
                                     if (subBtn != null)
                                     {
-                                        _iconManager.ApplyIcon(subBtn, sub, component);
-                                        _tooltipManager.ApplyTooltip(subBtn, sub);
-                                        ApplyHighlightToButton(subBtn, sub);
+                                        _buttonPostProcessor.Process(subBtn, sub, component);
                                     }
                                 }
                                 else if (sub.Type == CommandComponentType.LinkButton)
@@ -418,9 +396,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                         var linkSubBtn = splitBtn.AddPushButton(subLinkData);
                                         if (linkSubBtn != null)
                                         {
-                                            _iconManager.ApplyIcon(linkSubBtn, sub, component);
-                                            _tooltipManager.ApplyTooltip(linkSubBtn, sub);
-                                            ApplyHighlightToButton(linkSubBtn, sub);
+                                            _buttonPostProcessor.Process(linkSubBtn, sub, component);
                                         }
                                     }
                                 }
@@ -527,12 +503,10 @@ namespace pyRevitAssemblyBuilder.UIManager
                         var ribbonItem = stackedItems[i];
                         var origComponent = originalItems[i];
                         
-                        // Apply icons and tooltips to push buttons in stack
+                        // Apply post-processing to push buttons in stack
                         if (ribbonItem is PushButton pushBtn)
                         {
-                            _iconManager.ApplyIcon(pushBtn, origComponent);
-                            _tooltipManager.ApplyTooltip(pushBtn, origComponent);
-                            ApplyHighlightToButton(pushBtn, origComponent);
+                            _buttonPostProcessor.Process(pushBtn, origComponent);
                             
                             // Execute __selfinit__ for SmartButtons in stack
                             if (origComponent.Type == CommandComponentType.SmartButton)
@@ -548,12 +522,8 @@ namespace pyRevitAssemblyBuilder.UIManager
                         
                         if (ribbonItem is PulldownButton pdBtn)
                         {
-                            // Apply icon and tooltip to the pulldown button itself in stack
-                            _iconManager.ApplyIcon(pdBtn, origComponent);
-                            _tooltipManager.ApplyTooltip(pdBtn, origComponent);
-                            
-                            // Apply highlight to the pulldown button itself in stack
-                            ApplyHighlightToButton(pdBtn, origComponent);
+                            // Apply post-processing to the pulldown button itself in stack
+                            _buttonPostProcessor.Process(pdBtn, origComponent);
 
                             foreach (var sub in origComponent.Children ?? Enumerable.Empty<ParsedComponent>())
                             {
@@ -577,9 +547,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                     var subBtn = pdBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
                                     if (subBtn != null)
                                     {
-                                        _iconManager.ApplyIcon(subBtn, sub, origComponent, IconMode.SmallToBoth);
-                                        _tooltipManager.ApplyTooltip(subBtn, sub);
-                                        ApplyHighlightToButton(subBtn, sub);
+                                        _buttonPostProcessor.Process(subBtn, sub, origComponent, IconMode.SmallToBoth);
                                     }
                                 }
                                 else if (sub.Type == CommandComponentType.SmartButton)
@@ -588,9 +556,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                     var smartSubBtn = pdBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
                                     if (smartSubBtn != null)
                                     {
-                                        _iconManager.ApplyIcon(smartSubBtn, sub, origComponent, IconMode.SmallToBoth);
-                                        _tooltipManager.ApplyTooltip(smartSubBtn, sub);
-                                        ApplyHighlightToButton(smartSubBtn, sub);
+                                        _buttonPostProcessor.Process(smartSubBtn, sub, origComponent, IconMode.SmallToBoth);
                                         
                                         // Execute __selfinit__ for SmartButton in stack pulldown
                                         var shouldActivate = _smartButtonScriptInitializer.ExecuteSelfInit(sub, smartSubBtn);
@@ -624,12 +590,8 @@ namespace pyRevitAssemblyBuilder.UIManager
             var pdBtn = parentPanel.AddItem(pdData) as PulldownButton;
             if (pdBtn == null) return null;
 
-            // Apply icon and tooltip to the pulldown button itself
-            _iconManager.ApplyIcon(pdBtn, component);
-            _tooltipManager.ApplyTooltip(pdBtn, component);
-            
-            // Apply highlight to the pulldown button itself
-            ApplyHighlightToButton(pdBtn, component);
+            // Apply post-processing to the pulldown button itself
+            _buttonPostProcessor.Process(pdBtn, component);
 
             foreach (var sub in component.Children ?? Enumerable.Empty<ParsedComponent>())
             {
@@ -653,9 +615,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     var subBtn = pdBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
                     if (subBtn != null)
                     {
-                        _iconManager.ApplyIcon(subBtn, sub, component, IconMode.SmallToBoth);
-                        _tooltipManager.ApplyTooltip(subBtn, sub);
-                        ApplyHighlightToButton(subBtn, sub);
+                        _buttonPostProcessor.Process(subBtn, sub, component, IconMode.SmallToBoth);
                     }
                 }
                 else if (sub.Type == CommandComponentType.SmartButton)
@@ -664,9 +624,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     var smartSubBtn = pdBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
                     if (smartSubBtn != null)
                     {
-                        _iconManager.ApplyIcon(smartSubBtn, sub, component, IconMode.SmallToBoth);
-                        _tooltipManager.ApplyTooltip(smartSubBtn, sub);
-                        ApplyHighlightToButton(smartSubBtn, sub);
+                        _buttonPostProcessor.Process(smartSubBtn, sub, component, IconMode.SmallToBoth);
                         
                         // Execute __selfinit__ for SmartButton in pulldown
                         var shouldActivate = _smartButtonScriptInitializer.ExecuteSelfInit(sub, smartSubBtn);
@@ -685,9 +643,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         var linkSubBtn = pdBtn.AddPushButton(linkData);
                         if (linkSubBtn != null)
                         {
-                            _iconManager.ApplyIcon(linkSubBtn, sub, component, IconMode.SmallToBoth);
-                            _tooltipManager.ApplyTooltip(linkSubBtn, sub);
-                            ApplyHighlightToButton(linkSubBtn, sub);
+                            _buttonPostProcessor.Process(linkSubBtn, sub, component, IconMode.SmallToBoth);
                         }
                     }
                 }
@@ -698,7 +654,7 @@ namespace pyRevitAssemblyBuilder.UIManager
         private PushButtonData CreatePushButton(ParsedComponent component, ExtensionAssemblyInfo assemblyInfo)
         {
             // Use Title from bundle.yaml if available, otherwise fall back to DisplayName
-            var buttonText = _tooltipManager.GetButtonTextWithConfigIndicator(component);
+            var buttonText = _buttonPostProcessor.GetButtonText(component);
             
             // Ensure the class name matches what the CommandTypeGenerator creates
             var className = SanitizeClassName(component.UniqueId);
@@ -749,7 +705,7 @@ namespace pyRevitAssemblyBuilder.UIManager
 
                 // Use Title from bundle.yaml if available, otherwise fall back to DisplayName
                 // Also add config script indicator if applicable
-                var buttonText = _tooltipManager.GetButtonTextWithConfigIndicator(component);
+                var buttonText = _buttonPostProcessor.GetButtonText(component);
 
                 // Get assembly name to construct fully qualified class names
                 var assemblyName = Path.GetFileNameWithoutExtension(assemblyPath);
@@ -982,7 +938,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                 }
 
                 // Apply icon to the ComboBox itself
-                _iconManager.ApplyIcon(comboBox, component, null, IconMode.SmallOnly);
+                _buttonPostProcessor.IconManager.ApplyIcon(comboBox, component, null, IconMode.SmallOnly);
 
                 // Execute event handler setup script if present
                 if (_comboBoxScriptInitializer != null)
@@ -1024,7 +980,7 @@ namespace pyRevitAssemblyBuilder.UIManager
 
                 if (File.Exists(iconPath))
                 {
-                    var bitmap = _iconManager.LoadBitmapSource(iconPath, UIManagerConstants.ICON_SMALL);
+                    var bitmap = _buttonPostProcessor.IconManager.LoadBitmapSource(iconPath, UIManagerConstants.ICON_SMALL);
                     if (bitmap != null)
                     {
                         member.Image = bitmap;
@@ -1037,66 +993,7 @@ namespace pyRevitAssemblyBuilder.UIManager
             }
         }
 
-        #region Highlight Management
-
-        /// <summary>
-        /// Applies highlight to a Revit UI button based on the component's Highlight property
-        /// </summary>
-        private void ApplyHighlightToButton(RibbonItem revitButton, ParsedComponent component)
-        {
-            if (string.IsNullOrEmpty(component.Highlight))
-                return;
-
-            try
-            {
-                // Get the Autodesk.Windows.RibbonButton from the Revit RibbonItem
-                var adwButton = GetAutodeskWindowsButton(revitButton);
-                if (adwButton == null)
-                    return;
-
-                // Apply highlight based on the component's Highlight value
-                // Use reflection to access the Highlight property since it's in Autodesk.Internal namespace
-                var highlightValue = component.Highlight.ToLowerInvariant();
-                var highlightProperty = adwButton.GetType().GetProperty("Highlight");
-                
-                if (highlightProperty != null)
-                {
-                    var highlightModeType = highlightProperty.PropertyType;
-                    object highlightModeValue = null;
-
-                    if (highlightValue == "new")
-                    {
-                        var enumValues = Enum.GetValues(highlightModeType);
-                        foreach (var enumValue in enumValues)
-                        {
-                            if (enumValue.ToString() == "New")
-                            {
-                                highlightModeValue = enumValue;
-                                break;
-                            }
-                        }
-                    }
-                    else if (highlightValue == "updated")
-                    {
-                        var enumValues = Enum.GetValues(highlightModeType);
-                        foreach (var enumValue in enumValues)
-                        {
-                            if (enumValue.ToString() == "Updated")
-                            {
-                                highlightModeValue = enumValue;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (highlightModeValue != null)
-                        highlightProperty.SetValue(adwButton, highlightModeValue);
-                }
-            }
-            catch (Exception ex)            {
-                _logger.Debug($"Failed to apply highlight to button '{revitButton?.ItemText ?? "unknown"}'. Exception: {ex.Message}");
-            }
-        }
+        #region Panel and Ribbon Utilities
 
         /// <summary>
         /// Gets the Autodesk.Windows.RibbonButton from a Revit UI RibbonItem

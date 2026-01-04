@@ -3,6 +3,7 @@ using Autodesk.Revit.UI;
 using pyRevitAssemblyBuilder.AssemblyMaker;
 using pyRevitAssemblyBuilder.Interfaces;
 using pyRevitAssemblyBuilder.UIManager;
+using pyRevitAssemblyBuilder.UIManager.Buttons;
 using pyRevitAssemblyBuilder.UIManager.Icons;
 using pyRevitAssemblyBuilder.UIManager.Tooltips;
 
@@ -76,16 +77,27 @@ namespace pyRevitAssemblyBuilder.SessionManager
         }
 
         /// <summary>
+        /// Creates a ButtonPostProcessor instance.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        /// <param name="iconManager">The icon manager instance.</param>
+        /// <param name="tooltipManager">The tooltip manager instance.</param>
+        /// <returns>A new IButtonPostProcessor instance.</returns>
+        public static IButtonPostProcessor CreateButtonPostProcessor(ILogger logger, IIconManager iconManager, ITooltipManager tooltipManager)
+        {
+            return new ButtonPostProcessor(logger, iconManager, tooltipManager);
+        }
+
+        /// <summary>
         /// Creates a UIManagerService instance.
         /// </summary>
         /// <param name="uiApplication">The Revit UIApplication instance.</param>
         /// <param name="logger">The logger instance.</param>
-        /// <param name="iconManager">The icon manager instance.</param>
-        /// <param name="tooltipManager">The tooltip manager instance.</param>
+        /// <param name="buttonPostProcessor">The button post-processor instance.</param>
         /// <returns>A new IUIManagerService instance.</returns>
-        public static IUIManagerService CreateUIManagerService(UIApplication uiApplication, ILogger logger, IIconManager iconManager, ITooltipManager tooltipManager)
+        public static IUIManagerService CreateUIManagerService(UIApplication uiApplication, ILogger logger, IButtonPostProcessor buttonPostProcessor)
         {
-            return new UIManagerService(uiApplication, logger, iconManager, tooltipManager);
+            return new UIManagerService(uiApplication, logger, buttonPostProcessor);
         }
 
         /// <summary>
@@ -112,7 +124,8 @@ namespace pyRevitAssemblyBuilder.SessionManager
             var hookManager = CreateHookManager(logger);
             var iconManager = CreateIconManager(logger);
             var tooltipManager = CreateTooltipManager(logger);
-            var uiManager = CreateUIManagerService(uiApplication, logger, iconManager, tooltipManager);
+            var buttonPostProcessor = CreateButtonPostProcessor(logger, iconManager, tooltipManager);
+            var uiManager = CreateUIManagerService(uiApplication, logger, buttonPostProcessor);
 
             return new SessionManagerService(
                 assemblyBuilder, 
