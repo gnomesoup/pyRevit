@@ -1,15 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Autodesk.Revit.UI;
 using pyRevitAssemblyBuilder.AssemblyMaker;
 using pyRevitAssemblyBuilder.Interfaces;
+using pyRevitAssemblyBuilder.UIManager.Icons;
 using Autodesk.Windows;
 using RibbonPanel = Autodesk.Revit.UI.RibbonPanel;
 using RibbonButton = Autodesk.Windows.RibbonButton;
@@ -27,15 +26,11 @@ namespace pyRevitAssemblyBuilder.UIManager
     public class UIManagerService : IUIManagerService
     {
         private readonly ILogger _logger;
+        private readonly IIconManager _iconManager;
         private readonly UIApplication _uiApp;
         private ParsedExtension _currentExtension;
         private ComboBoxScriptInitializer _comboBoxScriptInitializer;
         private SmartButtonScriptInitializer _smartButtonScriptInitializer;
-        private readonly RevitThemeDetector _themeDetector;
-        
-        // Key: "filepath|size", Value: BitmapSource
-        // Uses ConcurrentDictionary to support parallel icon pre-loading
-        private readonly ConcurrentDictionary<string, BitmapSource> _bitmapCache = new ConcurrentDictionary<string, BitmapSource>();
 
         /// <summary>
         /// Gets the UIApplication instance used by this service.
@@ -47,13 +42,14 @@ namespace pyRevitAssemblyBuilder.UIManager
         /// </summary>
         /// <param name="uiApp">The Revit UIApplication instance.</param>
         /// <param name="logger">The logger instance.</param>
-        public UIManagerService(UIApplication uiApp, ILogger logger)
+        /// <param name="iconManager">The icon manager instance.</param>
+        public UIManagerService(UIApplication uiApp, ILogger logger, IIconManager iconManager)
         {
             _uiApp = uiApp;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _iconManager = iconManager ?? throw new ArgumentNullException(nameof(iconManager));
             _comboBoxScriptInitializer = new ComboBoxScriptInitializer(uiApp, logger);
             _smartButtonScriptInitializer = new SmartButtonScriptInitializer(uiApp, logger);
-            _themeDetector = new RevitThemeDetector(logger);
         }
 
         /// <summary>
@@ -81,9 +77,8 @@ namespace pyRevitAssemblyBuilder.UIManager
                 return;
             }
 
-            // This converts sequential file I/O to parallel I/O
-            // Note: Bitmap processing must happen on UI thread, so we read file bytes in parallel
-            PreloadExtensionIconBytes(extension);
+            // Pre-load icon files in parallel to warm OS file cache
+            _iconManager.PreloadExtensionIcons(extension);
 
             _currentExtension = extension;
             foreach (var component in extension.Children)
@@ -94,88 +89,6 @@ namespace pyRevitAssemblyBuilder.UIManager
                 }
             }
             _currentExtension = null;
-        }
-
-        /// <summary>
-        /// Pre-reads all icon file bytes for an extension in parallel.
-        /// This significantly reduces UI build time by parallelizing file I/O while
-        /// keeping bitmap creation on the main thread (required by WPF).
-        /// </summary>
-        private void PreloadExtensionIconBytes(ParsedExtension extension)
-        {
-            try
-            {
-                var isDarkTheme = _themeDetector.IsDarkTheme();
-                
-                // Collect all unique icon paths we'll need
-                var iconPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                
-                void CollectIconPaths(ParsedComponent component)
-                {
-                    if (component == null) return;
-                    
-                    // Get the best icons for this component
-                    var largeIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_LARGE, isDarkTheme);
-                    var smallIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_SMALL, isDarkTheme);
-                    
-                    if (largeIcon != null && !string.IsNullOrEmpty(largeIcon.FilePath) && File.Exists(largeIcon.FilePath))
-                    {
-                        iconPaths.Add(largeIcon.FilePath);
-                    }
-                    if (smallIcon != null && !string.IsNullOrEmpty(smallIcon.FilePath) && File.Exists(smallIcon.FilePath))
-                    {
-                        iconPaths.Add(smallIcon.FilePath);
-                    }
-                    
-                    // Recurse into children
-                    if (component.Children != null)
-                    {
-                        foreach (var child in component.Children)
-                        {
-                            CollectIconPaths(child);
-                        }
-                    }
-                }
-                
-                // Collect from all top-level children
-                if (extension.Children != null)
-                {
-                    foreach (var child in extension.Children)
-                    {
-                        CollectIconPaths(child);
-                    }
-                }
-                
-                if (iconPaths.Count == 0)
-                    return;
-                
-                _logger.Debug($"Pre-reading {iconPaths.Count} icon files for {extension.Name}...");
-                
-                // Read all icon file bytes in parallel to warm OS file cache
-                // This makes subsequent bitmap loading much faster
-                Parallel.ForEach(iconPaths, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, 
-                    iconPath =>
-                    {
-                        try
-                        {
-                            // Just read the file to warm the OS file cache
-                            // The actual bitmap loading will use BitmapImage with UriSource
-                            // which benefits from the warm cache
-                            File.ReadAllBytes(iconPath);
-                        }
-                        catch
-                        {
-                            // Ignore read errors - bitmap loading will handle them
-                        }
-                    });
-                
-                _logger.Debug($"Pre-read {iconPaths.Count} icon files for {extension.Name}");
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug($"Error pre-reading icons: {ex.Message}");
-                // Continue without pre-loading - icons will load on demand
-            }
         }
 
         private void RecursivelyBuildUI(
@@ -375,7 +288,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         var panelBtn = parentPanel.AddItem(panelBtnData) as PushButton;
                         if (panelBtn != null)
                         {
-                            ApplyIconToPushButtonThemeAware(panelBtn, component);
+                            _iconManager.ApplyIcon(panelBtn, component);
                             panelBtn.ToolTip = BuildButtonTooltip(component);
                             SetTooltipMedia(panelBtn, component);
                             ApplyHighlightToButton(panelBtn, component);
@@ -393,7 +306,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         var btn = parentPanel.AddItem(pbData) as PushButton;
                         if (btn != null)
                         {
-                            ApplyIconToPushButtonThemeAware(btn, component);
+                            _iconManager.ApplyIcon(btn, component);
                             btn.ToolTip = BuildButtonTooltip(component);
                             SetTooltipMedia(btn, component);
                             ApplyHighlightToButton(btn, component);
@@ -409,7 +322,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         if (smartBtn != null)
                         {
                             // Apply initial icon (may be overridden by __selfinit__)
-                            ApplyIconToPushButtonThemeAware(smartBtn, component);
+                            _iconManager.ApplyIcon(smartBtn, component);
                             smartBtn.ToolTip = BuildButtonTooltip(component);
                             SetTooltipMedia(smartBtn, component);
                             ApplyHighlightToButton(smartBtn, component);
@@ -435,7 +348,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                             var linkBtn = parentPanel.AddItem(linkData) as PushButton;
                             if (linkBtn != null)
                             {
-                                ApplyIconToPushButtonThemeAware(linkBtn, component);
+                                _iconManager.ApplyIcon(linkBtn, component);
                                 linkBtn.ToolTip = BuildButtonTooltip(component);
                                 SetTooltipMedia(linkBtn, component);
                                 ApplyHighlightToButton(linkBtn, component);
@@ -462,7 +375,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         if (splitBtn != null)
                         {
                             // Apply icon to split button
-                            ApplyIconToSplitButtonThemeAware(splitBtn, component);
+                            _iconManager.ApplyIcon(splitBtn, component);
 
                             // Assign tooltip to the split button itself
                             splitBtn.ToolTip = BuildButtonTooltip(component);
@@ -493,7 +406,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                     var subBtn = splitBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
                                     if (subBtn != null)
                                     {
-                                        ApplyIconToPushButtonThemeAware(subBtn, sub, component);
+                                        _iconManager.ApplyIcon(subBtn, sub, component);
                                         subBtn.ToolTip = BuildButtonTooltip(sub);
                                         SetTooltipMedia(subBtn, sub);
                                         ApplyHighlightToButton(subBtn, sub);
@@ -507,7 +420,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                         var linkSubBtn = splitBtn.AddPushButton(subLinkData);
                                         if (linkSubBtn != null)
                                         {
-                                            ApplyIconToPushButtonThemeAware(linkSubBtn, sub, component);
+                                            _iconManager.ApplyIcon(linkSubBtn, sub, component);
                                             linkSubBtn.ToolTip = BuildButtonTooltip(sub);
                                             SetTooltipMedia(linkSubBtn, sub);
                                             ApplyHighlightToButton(linkSubBtn, sub);
@@ -620,7 +533,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         // Apply icons and tooltips to push buttons in stack
                         if (ribbonItem is PushButton pushBtn)
                         {
-                            ApplyIconToPushButtonThemeAware(pushBtn, origComponent);
+                            _iconManager.ApplyIcon(pushBtn, origComponent);
                             pushBtn.ToolTip = BuildButtonTooltip(origComponent);
                             SetTooltipMedia(pushBtn, origComponent);
                             ApplyHighlightToButton(pushBtn, origComponent);
@@ -640,7 +553,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         if (ribbonItem is PulldownButton pdBtn)
                         {
                             // Apply icon and tooltip to the pulldown button itself in stack
-                            ApplyIconToPulldownButtonThemeAware(pdBtn, origComponent);
+                            _iconManager.ApplyIcon(pdBtn, origComponent);
                             pdBtn.ToolTip = BuildButtonTooltip(origComponent);
                             SetTooltipMedia(pdBtn, origComponent);
                             
@@ -669,7 +582,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                     var subBtn = pdBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
                                     if (subBtn != null)
                                     {
-                                        ApplyIconToPulldownSubButtonThemeAware(subBtn, sub, origComponent);
+                                        _iconManager.ApplyIcon(subBtn, sub, origComponent, IconMode.SmallToBoth);
                                         subBtn.ToolTip = BuildButtonTooltip(sub);
                                         SetTooltipMedia(subBtn, sub);
                                         ApplyHighlightToButton(subBtn, sub);
@@ -681,7 +594,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                                     var smartSubBtn = pdBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
                                     if (smartSubBtn != null)
                                     {
-                                        ApplyIconToPulldownSubButtonThemeAware(smartSubBtn, sub, origComponent);
+                                        _iconManager.ApplyIcon(smartSubBtn, sub, origComponent, IconMode.SmallToBoth);
                                         smartSubBtn.ToolTip = BuildButtonTooltip(sub);
                                         SetTooltipMedia(smartSubBtn, sub);
                                         ApplyHighlightToButton(smartSubBtn, sub);
@@ -719,7 +632,7 @@ namespace pyRevitAssemblyBuilder.UIManager
             if (pdBtn == null) return null;
 
             // Apply icon and tooltip to the pulldown button itself
-            ApplyIconToPulldownButtonThemeAware(pdBtn, component);
+            _iconManager.ApplyIcon(pdBtn, component);
             pdBtn.ToolTip = BuildButtonTooltip(component);
             SetTooltipMedia(pdBtn, component);
             
@@ -748,7 +661,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     var subBtn = pdBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
                     if (subBtn != null)
                     {
-                        ApplyIconToPulldownSubButtonThemeAware(subBtn, sub, component);
+                        _iconManager.ApplyIcon(subBtn, sub, component, IconMode.SmallToBoth);
                         subBtn.ToolTip = BuildButtonTooltip(sub);
                         SetTooltipMedia(subBtn, sub);
                         ApplyHighlightToButton(subBtn, sub);
@@ -760,7 +673,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     var smartSubBtn = pdBtn.AddPushButton(CreatePushButton(sub, assemblyInfo));
                     if (smartSubBtn != null)
                     {
-                        ApplyIconToPulldownSubButtonThemeAware(smartSubBtn, sub, component);
+                        _iconManager.ApplyIcon(smartSubBtn, sub, component, IconMode.SmallToBoth);
                         smartSubBtn.ToolTip = BuildButtonTooltip(sub);
                         SetTooltipMedia(smartSubBtn, sub);
                         ApplyHighlightToButton(smartSubBtn, sub);
@@ -782,7 +695,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                         var linkSubBtn = pdBtn.AddPushButton(linkData);
                         if (linkSubBtn != null)
                         {
-                            ApplyIconToPulldownSubButtonThemeAware(linkSubBtn, sub, component);
+                            _iconManager.ApplyIcon(linkSubBtn, sub, component, IconMode.SmallToBoth);
                             linkSubBtn.ToolTip = BuildButtonTooltip(sub);
                             SetTooltipMedia(linkSubBtn, sub);
                             ApplyHighlightToButton(linkSubBtn, sub);
@@ -1366,7 +1279,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                 }
 
                 // Apply icon to the ComboBox itself
-                ApplyIconToComboBoxThemeAware(comboBox, component);
+                _iconManager.ApplyIcon(comboBox, component, null, IconMode.SmallOnly);
 
                 // Execute event handler setup script if present
                 if (_comboBoxScriptInitializer != null)
@@ -1390,34 +1303,6 @@ namespace pyRevitAssemblyBuilder.UIManager
         }
 
         /// <summary>
-        /// Applies icon to a ComboBox with theme awareness.
-        /// </summary>
-        private void ApplyIconToComboBoxThemeAware(ComboBox comboBox, ParsedComponent component)
-        {
-            if (!component.HasValidIcons)
-                return;
-
-            try
-            {
-                var isDarkTheme = _themeDetector.IsDarkTheme();
-                var icon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_SMALL, isDarkTheme);
-
-                if (icon != null)
-                {
-                    var bitmap = LoadBitmapSource(icon.FilePath, UIManagerConstants.ICON_SMALL);
-                    if (bitmap != null)
-                    {
-                        comboBox.Image = bitmap;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug($"Failed to apply icon to ComboBox '{component.DisplayName}'. Exception: {ex.Message}");
-            }
-        }
-
-        /// <summary>
         /// Applies icon to a ComboBox member.
         /// </summary>
         private void ApplyIconToComboBoxMember(RevitComboBoxMember member, pyRevitExtensionParser.ComboBoxMember memberDef, ParsedComponent parentComponent)
@@ -1436,7 +1321,7 @@ namespace pyRevitAssemblyBuilder.UIManager
 
                 if (File.Exists(iconPath))
                 {
-                    var bitmap = LoadBitmapSource(iconPath, UIManagerConstants.ICON_SMALL);
+                    var bitmap = _iconManager.LoadBitmapSource(iconPath, UIManagerConstants.ICON_SMALL);
                     if (bitmap != null)
                     {
                         member.Image = bitmap;
@@ -1448,321 +1333,6 @@ namespace pyRevitAssemblyBuilder.UIManager
                 _logger.Debug($"Failed to apply icon to ComboBox member '{memberDef.Text}'. Exception: {ex.Message}");
             }
         }
-
-        #region Icon Management
-
-        /// <summary>
-        /// Applies icons from the component to a PushButton with theme awareness (primary method)
-        /// If the component doesn't have icons, falls back to the parent component's icons
-        /// </summary>
-        private void ApplyIconToPushButtonThemeAware(PushButton button, ParsedComponent component, ParsedComponent parentComponent = null)
-        {
-            // If the component doesn't have icons, try to use parent's icons
-            if (!component.HasValidIcons)
-            {
-                if (parentComponent != null && parentComponent.HasValidIcons)
-                {
-                    // Use parent's icons for this button
-                    component = parentComponent;
-                }
-                else
-                {
-                    return;
-                }
-            }
-
-            try
-            {
-                var isDarkTheme = _themeDetector.IsDarkTheme();
-
-                // Get the best icons for large and small sizes with theme awareness
-                var largeIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_LARGE, isDarkTheme);
-                var smallIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_SMALL, isDarkTheme);
-
-                if (largeIcon != null)
-                {
-                    var largeBitmap = LoadBitmapSource(largeIcon.FilePath, UIManagerConstants.ICON_LARGE);
-                    if (largeBitmap != null)
-                    {
-                        button.LargeImage = largeBitmap;
-                    }
-                }
-
-                if (smallIcon != null)
-                {
-                    var smallBitmap = LoadBitmapSource(smallIcon.FilePath, UIManagerConstants.ICON_SMALL);
-                    if (smallBitmap != null)
-                    {
-                        button.Image = smallBitmap;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug($"Failed to apply icon to push button '{component.DisplayName}'. Exception: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Applies icons from the component to a PulldownButton with theme awareness
-        /// Uses fixed 16x16 size for pulldown button icons to ensure consistent appearance
-        /// </summary>
-        private void ApplyIconToPulldownButtonThemeAware(PulldownButton button, ParsedComponent component)
-        {
-            if (!component.HasValidIcons)
-                return;
-
-            try
-            {
-                var isDarkTheme = _themeDetector.IsDarkTheme();
-
-                // For pulldown buttons, use ICON_SMALL size for consistent appearance
-                // This ensures pulldown icons remain at the expected size regardless of DPI scaling
-                
-                // Get the best icons for pulldown buttons with fixed small size
-                var smallIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_SMALL, isDarkTheme);
-                // For the main pulldown button, also get a larger icon for LargeImage property
-                var largeIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_LARGE, isDarkTheme);
-
-                // Set the large image for the main pulldown button
-                if (largeIcon != null)
-                {
-                    var largeBitmap = LoadBitmapSource(largeIcon.FilePath, UIManagerConstants.ICON_LARGE);
-                    if (largeBitmap != null)
-                    {
-                        button.LargeImage = largeBitmap;
-                    }
-                }
-
-                // Set the small image for the main pulldown button
-                if (smallIcon != null)
-                {
-                    var smallBitmap = LoadBitmapSource(smallIcon.FilePath, UIManagerConstants.ICON_SMALL);
-                    if (smallBitmap != null)
-                    {
-                        button.Image = smallBitmap;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug($"Failed to apply icon to push button '{component.DisplayName}'. Exception: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Applies icons from the component to a PushButton within a pulldown with theme awareness
-        /// Uses fixed 16x16 size for consistency with pulldown button appearance
-        /// If the component doesn't have icons, falls back to the parent component's icons
-        /// </summary>
-        private void ApplyIconToPulldownSubButtonThemeAware(PushButton button, ParsedComponent component, ParsedComponent parentComponent = null)
-        {
-            // If the component doesn't have icons, try to use parent's icons
-            if (!component.HasValidIcons)
-            {
-                if (parentComponent != null && parentComponent.HasValidIcons)
-                {
-                    // Use parent's icons for this button
-                    component = parentComponent;
-                }
-                else
-                {
-                    return;
-                }
-            }
-
-            try
-            {
-                var isDarkTheme = _themeDetector.IsDarkTheme();
-
-                // For pulldown sub-buttons, use ICON_SMALL size for consistency with pulldown appearance
-                
-                // Get the best icon for pulldown sub-buttons
-                var smallIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_SMALL, isDarkTheme);
-
-                if (smallIcon != null)
-                {
-                    var smallBitmap = LoadBitmapSource(smallIcon.FilePath, UIManagerConstants.ICON_SMALL);
-                    if (smallBitmap != null)
-                    {
-                        // For pulldown sub-buttons, set both properties to ensure visibility
-                        // Some Revit contexts require both Image and LargeImage to be set
-                        button.Image = smallBitmap;
-                        button.LargeImage = smallBitmap;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug($"Failed to apply icon to push button '{component.DisplayName}'. Exception: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Applies icons from the component to a SplitButton with theme awareness
-        /// </summary>
-        private void ApplyIconToSplitButtonThemeAware(SplitButton button, ParsedComponent component)
-        {
-            if (!component.HasValidIcons)
-                return;
-
-            try
-            {
-                var isDarkTheme = _themeDetector.IsDarkTheme();
-
-                // Get the best icons for large and small sizes with theme awareness
-                var largeIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_LARGE, isDarkTheme);
-                var smallIcon = GetBestIconForSizeWithTheme(component, UIManagerConstants.ICON_SMALL, isDarkTheme);
-
-                if (largeIcon != null)
-                {
-                    var largeBitmap = LoadBitmapSource(largeIcon.FilePath, UIManagerConstants.ICON_LARGE);
-                    if (largeBitmap != null)
-                    {
-                        button.LargeImage = largeBitmap;
-                    }
-                }
-
-                if (smallIcon != null)
-                {
-                    var smallBitmap = LoadBitmapSource(smallIcon.FilePath, UIManagerConstants.ICON_SMALL);
-                    if (smallBitmap != null)
-                    {
-                        button.Image = smallBitmap;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug($"Failed to apply icon to split button '{component.DisplayName}'. Exception: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Gets the best icon for a specific size with theme preference.
-        /// Only icon.png (Standard) and icon.dark.png (DarkStandard) are supported.
-        /// </summary>
-        private ComponentIcon GetBestIconForSizeWithTheme(ParsedComponent component, int preferredSize, bool isDarkTheme)
-        {
-            if (!component.HasValidIcons)
-                return null;
-
-            // Return the appropriate icon based on theme preference
-            if (isDarkTheme)
-            {
-                // In dark theme, prefer dark icon, fall back to light
-                var darkIcon = component.Icons.PrimaryDarkIcon;
-                if (darkIcon?.IsValid == true)
-                    return darkIcon;
-            }
-
-            // Use light icon (either because we're in light theme, or as fallback)
-            var lightIcon = component.Icons.PrimaryIcon;
-            if (lightIcon?.IsValid == true)
-                return lightIcon;
-
-            // Final fallback - use any valid icon
-            return component.Icons.FirstOrDefault(i => i.IsValid);
-        }
-
-        /// <summary>
-        /// Loads a BitmapSource from an image file path with automatic resizing for Revit UI requirements.
-        /// Thread-safe for parallel icon pre-loading.
-        /// </summary>
-        private BitmapSource LoadBitmapSource(string imagePath, int targetSize = 0)
-        {
-            if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
-                return null;
-
-            string cacheKey = $"{imagePath}|{targetSize}";
-            if (_bitmapCache.TryGetValue(cacheKey, out var cachedBitmap))
-                return cachedBitmap;
-
-            try
-            {
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                
-                // If target size is specified, resize the image
-                if (targetSize > 0)
-                {
-                    bitmap.DecodePixelWidth = targetSize;
-                    bitmap.DecodePixelHeight = targetSize;
-                }
-                
-                bitmap.EndInit();
-                bitmap.Freeze(); // Make it thread-safe for cross-thread access
-
-                // Ensure proper DPI for Revit (96 DPI is standard)
-                var result = EnsureProperDpi(bitmap, targetSize);
-                
-                // Cache the result (thread-safe, may overwrite duplicate loads but that's OK)
-                if (result != null)
-                    _bitmapCache.TryAdd(cacheKey, result);
-                    
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug($"Failed to load bitmap source from '{imagePath}'. Exception: {ex.Message}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Ensures the bitmap has proper DPI and size for Revit UI
-        /// </summary>
-        private BitmapSource EnsureProperDpi(BitmapSource source, int targetSize)
-        {
-            if (source == null) return null;
-
-            try
-            {
-                const double targetDpi = 96.0;
-                
-                // Check if we need to adjust DPI or size
-                bool needsDpiAdjustment = Math.Abs(source.DpiX - targetDpi) > 1.0 || Math.Abs(source.DpiY - targetDpi) > 1.0;
-                bool needsSizeAdjustment = targetSize > 0 && (source.PixelWidth != targetSize || source.PixelHeight != targetSize);
-                
-                if (!needsDpiAdjustment && !needsSizeAdjustment)
-                {
-                                        return source;
-                }
-
-                // Calculate the target dimensions
-                int width = targetSize > 0 ? targetSize : source.PixelWidth;
-                int height = targetSize > 0 ? targetSize : source.PixelHeight;
-
-                
-                // Create a properly sized and DPI-adjusted bitmap
-                var targetBitmap = new RenderTargetBitmap(
-                    width, 
-                    height, 
-                    targetDpi, 
-                    targetDpi, 
-                    PixelFormats.Pbgra32);
-
-                var visual = new DrawingVisual();
-                using (var context = visual.RenderOpen())
-                {
-                    // Draw the source image scaled to fit the target size
-                    context.DrawImage(source, new Rect(0, 0, width, height));
-                }
-
-                targetBitmap.Render(visual);
-                targetBitmap.Freeze();
-                
-                                return targetBitmap;
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug($"Failed to adjust DPI for bitmap source. Exception: {ex.Message}");
-                return source; // Return original if adjustment fails
-            }
-        }
-        #endregion
 
         #region Highlight Management
 

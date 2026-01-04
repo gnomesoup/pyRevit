@@ -3,6 +3,7 @@ using Autodesk.Revit.UI;
 using pyRevitAssemblyBuilder.AssemblyMaker;
 using pyRevitAssemblyBuilder.Interfaces;
 using pyRevitAssemblyBuilder.UIManager;
+using pyRevitAssemblyBuilder.UIManager.Icons;
 
 namespace pyRevitAssemblyBuilder.SessionManager
 {
@@ -54,14 +55,25 @@ namespace pyRevitAssemblyBuilder.SessionManager
         }
 
         /// <summary>
+        /// Creates an IconManager instance.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        /// <returns>A new IIconManager instance.</returns>
+        public static IIconManager CreateIconManager(ILogger logger)
+        {
+            return new IconManager(logger);
+        }
+
+        /// <summary>
         /// Creates a UIManagerService instance.
         /// </summary>
         /// <param name="uiApplication">The Revit UIApplication instance.</param>
         /// <param name="logger">The logger instance.</param>
+        /// <param name="iconManager">The icon manager instance.</param>
         /// <returns>A new IUIManagerService instance.</returns>
-        public static IUIManagerService CreateUIManagerService(UIApplication uiApplication, ILogger logger)
+        public static IUIManagerService CreateUIManagerService(UIApplication uiApplication, ILogger logger, IIconManager iconManager)
         {
-            return new UIManagerService(uiApplication, logger);
+            return new UIManagerService(uiApplication, logger, iconManager);
         }
 
         /// <summary>
@@ -86,7 +98,8 @@ namespace pyRevitAssemblyBuilder.SessionManager
             var assemblyBuilder = CreateAssemblyBuilderService(revitVersion, buildStrategy, logger);
             var extensionManager = CreateExtensionManagerService();
             var hookManager = CreateHookManager(logger);
-            var uiManager = CreateUIManagerService(uiApplication, logger);
+            var iconManager = CreateIconManager(logger);
+            var uiManager = CreateUIManagerService(uiApplication, logger, iconManager);
 
             return new SessionManagerService(
                 assemblyBuilder, 
