@@ -14,7 +14,6 @@ namespace pyRevitAssemblyBuilder.UIManager
     /// </summary>
     public class SmartButtonContext
     {
-
         private readonly PushButton _pushButton;
         private readonly ParsedComponent _component;
         private readonly UIApplication _uiApp;
