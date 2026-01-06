@@ -86,8 +86,8 @@ namespace pyRevitAssemblyBuilder.UIManager.Builders
                 }
                 else if (child.Type == CommandComponentType.PullDown)
                 {
-                    // Use Title from bundle.yaml if available, otherwise fall back to DisplayName
-                    var pulldownText = !string.IsNullOrEmpty(child.Title) ? child.Title : child.DisplayName;
+                    // Use localized title which handles fallback to DisplayName
+                    var pulldownText = ExtensionParser.GetComponentTitle(child);
                     // Use DisplayName for the button's internal name to match control ID format
                     var pdData = new PulldownButtonData(child.DisplayName, pulldownText);
                     itemDataList.Add(pdData);

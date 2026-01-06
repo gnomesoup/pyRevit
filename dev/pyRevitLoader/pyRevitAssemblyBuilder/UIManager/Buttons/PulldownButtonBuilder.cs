@@ -72,8 +72,8 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
             ExtensionAssemblyInfo assemblyInfo,
             bool addToPanel)
         {
-            // Use Title from bundle.yaml if available, otherwise fall back to DisplayName
-            var pulldownText = !string.IsNullOrEmpty(component.Title) ? component.Title : component.DisplayName;
+            // Use localized title which handles fallback to DisplayName
+            var pulldownText = ExtensionParser.GetComponentTitle(component);
             // Use DisplayName for the button's internal name to match control ID format
             var pdData = new PulldownButtonData(component.DisplayName, pulldownText);
 

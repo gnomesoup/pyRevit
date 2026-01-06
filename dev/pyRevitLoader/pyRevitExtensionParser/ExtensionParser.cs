@@ -53,11 +53,36 @@ namespace pyRevitExtensionParser
         // Cache extension roots to avoid repeated directory traversal and config reading
         private static List<string> _cachedExtensionRoots;
         
+        /// <summary>
+        /// Flag to track if locale has been initialized from config
+        /// </summary>
+        private static bool _localeInitialized = false;
+        
+        /// <summary>
+        /// Initializes the DefaultLocale from user configuration if not already set.
+        /// Should be called before parsing extensions to ensure locale-aware localization.
+        /// </summary>
+        private static void InitializeLocaleFromConfig()
+        {
+            if (_localeInitialized)
+                return;
+                
+            var config = GetConfig();
+            var userLocale = config.UserLocale;
+            if (!string.IsNullOrEmpty(userLocale))
+            {
+                DefaultLocale = userLocale;
+            }
+            _localeInitialized = true;
+        }
+        
         private static List<string> GetCachedExtensionRoots()
         {
             if (_cachedExtensionRoots == null)
             {
                 var config = GetConfig();
+                // Initialize locale from config before parsing
+                InitializeLocaleFromConfig();
                 _cachedExtensionRoots = GetExtensionRoots();
                 _cachedExtensionRoots.AddRange(config.UserExtensionsList);
             }
@@ -755,6 +780,62 @@ namespace pyRevitExtensionParser
             }
 
             return components;
+        }
+
+        /// <summary>
+        /// Gets a localized value from a dictionary, falling back to the default locale, then to the first available value.
+        /// This is the public API for getting localized values.
+        /// </summary>
+        /// <param name="localizedValues">Dictionary of locale codes to values.</param>
+        /// <param name="preferredLocale">Optional preferred locale to use. If null, uses DefaultLocale.</param>
+        /// <returns>The localized value or null if not found.</returns>
+        public static string GetLocalizedString(Dictionary<string, string> localizedValues, string preferredLocale = null)
+        {
+            return GetLocalizedValue(localizedValues, preferredLocale);
+        }
+
+        /// <summary>
+        /// Gets the localized title for a component, with fallback to DisplayName.
+        /// </summary>
+        /// <param name="component">The component to get the title for.</param>
+        /// <returns>The localized title or DisplayName.</returns>
+        public static string GetComponentTitle(ParsedComponent component)
+        {
+            if (component == null)
+                return string.Empty;
+                
+            // First try localized titles
+            if (component.LocalizedTitles != null && component.LocalizedTitles.Count > 0)
+            {
+                var localizedTitle = GetLocalizedValue(component.LocalizedTitles);
+                if (!string.IsNullOrEmpty(localizedTitle))
+                    return localizedTitle;
+            }
+            
+            // Fall back to pre-resolved Title or DisplayName
+            return !string.IsNullOrEmpty(component.Title) ? component.Title : component.DisplayName;
+        }
+
+        /// <summary>
+        /// Gets the localized tooltip for a component.
+        /// </summary>
+        /// <param name="component">The component to get the tooltip for.</param>
+        /// <returns>The localized tooltip or empty string.</returns>
+        public static string GetComponentTooltip(ParsedComponent component)
+        {
+            if (component == null)
+                return string.Empty;
+                
+            // First try localized tooltips
+            if (component.LocalizedTooltips != null && component.LocalizedTooltips.Count > 0)
+            {
+                var localizedTooltip = GetLocalizedValue(component.LocalizedTooltips);
+                if (!string.IsNullOrEmpty(localizedTooltip))
+                    return localizedTooltip;
+            }
+            
+            // Fall back to pre-resolved Tooltip
+            return component.Tooltip ?? string.Empty;
         }
 
         /// <summary>

@@ -157,8 +157,8 @@ namespace pyRevitAssemblyBuilder.UIManager
             // Use TabBuilder to create the tab
             _tabBuilder.CreateTab(component);
 
-            // Get tab name for children
-            var tabText = !string.IsNullOrEmpty(component.Title) ? component.Title : component.DisplayName;
+            // Get tab name for children using localized title
+            var tabText = ExtensionParser.GetComponentTitle(component);
 
             // Recursively build children
             foreach (var child in component.Children ?? Enumerable.Empty<ParsedComponent>())

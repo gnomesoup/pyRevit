@@ -32,10 +32,11 @@ namespace pyRevitAssemblyBuilder.UIManager.Tooltips
         {
             var tooltip = string.Empty;
 
-            // Add original tooltip if present
-            if (!string.IsNullOrEmpty(component.Tooltip))
+            // Add localized tooltip if present
+            var localizedTooltip = ExtensionParser.GetComponentTooltip(component);
+            if (!string.IsNullOrEmpty(localizedTooltip))
             {
-                tooltip = component.Tooltip + "\n\n";
+                tooltip = localizedTooltip + "\n\n";
             }
 
             // Add Bundle Name with type (matching Python: button.name, button.type_id.replace(".", ""))
@@ -90,7 +91,8 @@ namespace pyRevitAssemblyBuilder.UIManager.Tooltips
         /// <inheritdoc/>
         public string GetButtonTextWithConfigIndicator(ParsedComponent component)
         {
-            var baseText = !string.IsNullOrEmpty(component.Title) ? component.Title : component.DisplayName;
+            // Use centralized localized title method
+            var baseText = ExtensionParser.GetComponentTitle(component);
             
             // Add dot indicator if component has a separate config script
             if (component.HasConfigScript)

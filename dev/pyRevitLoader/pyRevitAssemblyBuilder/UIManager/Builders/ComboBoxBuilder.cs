@@ -47,8 +47,8 @@ namespace pyRevitAssemblyBuilder.UIManager.Builders
 
             try
             {
-                // Use Title from bundle.yaml if available, otherwise fall back to DisplayName
-                var comboBoxText = !string.IsNullOrEmpty(component.Title) ? component.Title : component.DisplayName;
+                // Use localized title which handles fallback to DisplayName
+                var comboBoxText = ExtensionParser.GetComponentTitle(component);
 
                 // Create ComboBoxData - use DisplayName to match control ID format
                 var comboBoxData = new ComboBoxData(component.DisplayName);
@@ -61,10 +61,11 @@ namespace pyRevitAssemblyBuilder.UIManager.Builders
                     return;
                 }
 
-                // Set tooltip if available
-                if (!string.IsNullOrEmpty(component.Tooltip))
+                // Set localized tooltip if available
+                var localizedTooltip = ExtensionParser.GetComponentTooltip(component);
+                if (!string.IsNullOrEmpty(localizedTooltip))
                 {
-                    comboBox.ToolTip = component.Tooltip;
+                    comboBox.ToolTip = localizedTooltip;
                 }
 
                 // Set ItemText (initial display text)

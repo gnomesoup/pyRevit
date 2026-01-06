@@ -36,8 +36,8 @@ namespace pyRevitAssemblyBuilder.UIManager.Builders
                 return;
             }
 
-            // Use Title from bundle.yaml if available, otherwise fall back to DisplayName
-            var tabText = !string.IsNullOrEmpty(component.Title) ? component.Title : component.DisplayName;
+            // Use localized title which handles fallback to DisplayName
+            var tabText = ExtensionParser.GetComponentTitle(component);
             
             try
             {

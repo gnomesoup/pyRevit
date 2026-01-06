@@ -45,8 +45,8 @@ namespace pyRevitAssemblyBuilder.UIManager.Builders
                 return null!;
             }
 
-            // Use Title from bundle.yaml if available, otherwise fall back to DisplayName
-            var panelText = !string.IsNullOrEmpty(component.Title) ? component.Title : component.DisplayName;
+            // Use localized title which handles fallback to DisplayName
+            var panelText = ExtensionParser.GetComponentTitle(component);
             
             var panel = _uiApp.GetRibbonPanels(tabName)
                 .FirstOrDefault(p => p.Name == panelText)
