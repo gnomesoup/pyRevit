@@ -535,7 +535,8 @@ def find_all_commands(category_set=None, cache=True):
                     pyrvt_availtype = None
 
                     if not tname.endswith(runtime.CMD_AVAIL_NAME_POSTFIX)\
-                            and runtime.RUNTIME_NAMESPACE not in tname:
+                            and runtime.RUNTIME_NAMESPACE not in tname \
+                            and pyrvt_type.IsSubclassOf(runtime.CMD_EXECUTOR_TYPE):
                         for exported_type in all_exported_types:
                             if exported_type.Name == availtname:
                                 pyrvt_availtype = exported_type
