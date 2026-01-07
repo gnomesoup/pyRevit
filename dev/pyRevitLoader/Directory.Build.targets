@@ -56,6 +56,10 @@
         <ItemGroup>
             <AllFilesToCopy Include="$(TargetDir)\**\*.dll"
                             Exclude="$(TargetDir)\**\Xceed.Wpf.AvalonDock.dll;
+                                     $(TargetDir)\**\Microsoft.CodeAnalysis.dll;
+                                     $(TargetDir)\**\Microsoft.CodeAnalysis.CSharp.dll;
+                                     $(TargetDir)\**\Microsoft.CodeAnalysis.CSharp.resources.dll;
+                                     $(TargetDir)\**\Microsoft.CodeAnalysis.resources.dll;
                                      $(TargetDir)\**\System.*.dll"
                             Condition="'$(IsTestProject)' != 'true'"/>
         </ItemGroup>
