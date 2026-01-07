@@ -92,23 +92,6 @@ namespace pyRevitExtensionParser
         /// <summary>
         /// Gets or sets whether the Roslyn-based C# script loader is enabled.
         /// </summary>
-        /// <remarks>
-        /// Defaults to true if not configured or if the value cannot be parsed.
-        /// Requires <see cref="NewLoader"/> to be enabled to take effect.
-        /// </remarks>
-        public bool NewLoaderRoslyn
-        {
-            get
-            {
-                var value = _ini.IniReadValue("core", "use_roslyn_loader");
-                return bool.TryParse(value, out var result) ? result : true;
-            }
-            set
-            {
-                _ini.IniWriteValue("core", "use_roslyn_loader", value ? TrueString : FalseString);
-            }
-        }
-        
         /// <summary>
         /// Gets or sets the timeout (in seconds) for displaying startup log messages.
         /// </summary>

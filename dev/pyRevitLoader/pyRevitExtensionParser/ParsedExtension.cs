@@ -51,7 +51,7 @@ namespace pyRevitExtensionParser
         /// This matches the Python implementation in coreutils.calculate_dir_hash()
         /// OPTIMIZED: Uses EnumerateFiles/EnumerateDirectories for lazy evaluation, HashSet for O(1) extension lookup
         /// </summary>
-        /// <param name="seed">Optional seed to include in hash calculation. Use empty string for Python, 'ILPack' for ILPack, 'Roslyn' for Roslyn</param>
+        /// <param name="seed">Optional seed to include in hash calculation. Use empty string for Python, 'Roslyn' for Roslyn build strategy</param>
         public string GetHash(string seed = "")
         {
             // Check cache first

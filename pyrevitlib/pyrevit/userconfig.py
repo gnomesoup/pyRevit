@@ -316,21 +316,6 @@ class PyRevitConfig(configparser.PyRevitConfigParser):
         )
     
     @property
-    def use_roslyn_loader(self):
-        """Whether to use Roslyn build strategy."""
-        return self.core.get_option(
-            CONSTS.ConfigsUseRoslynKey,
-            default_value=CONSTS.ConfigsUseRoslynDefault,
-        )
-    
-    @use_roslyn_loader.setter
-    def use_roslyn_loader(self, state):
-        self.core.set_option(
-            CONSTS.ConfigsUseRoslynKey,
-            value=state
-        )
-    
-    @property
     def output_close_others(self):
         """Whether to close other output windows."""
         return self.core.get_option(

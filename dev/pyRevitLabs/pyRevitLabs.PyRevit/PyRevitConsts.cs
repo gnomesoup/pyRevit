@@ -179,8 +179,6 @@ namespace pyRevitLabs.PyRevit {
         // loader settings
         public const string ConfigsNewLoaderKey = "new_loader";
         public const bool ConfigsNewLoaderDefault = true;
-        public const string ConfigsUseRoslynKey = "use_roslyn_loader";
-        public const bool ConfigsUseRoslynDefault = true;
 
         // theme
         public static SolidColorBrush PyRevitAccentBrush = new SolidColorBrush(Color.FromArgb(0xFF, 0xf3, 0x9c, 0x12));

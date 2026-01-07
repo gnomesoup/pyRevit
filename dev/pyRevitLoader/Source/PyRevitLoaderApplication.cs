@@ -116,43 +116,9 @@ namespace PyRevitLoader
 				// Get the current Revit version
 				var revitVersion = uiControlledApplication.ControlledApplication.VersionNumber;
 
-			// Determine build strategy: use provided parameter, or read from config, or default to ILPack
-			AssemblyBuildStrategy strategyEnum;
+			// Always use Roslyn build strategy
+			AssemblyBuildStrategy strategyEnum = AssemblyBuildStrategy.Roslyn;
 
-			if (!string.IsNullOrEmpty(buildStrategy))
-			{
-				// Use provided build strategy from Python
-				// Safely parse the enum value by comparing against known values
-				var buildStrategyLower = buildStrategy.ToLowerInvariant();
-				if (buildStrategyLower == "roslyn")
-				{
-					strategyEnum = AssemblyBuildStrategy.Roslyn;
-				}
-				else if (buildStrategyLower == "ilpack")
-				{
-					strategyEnum = AssemblyBuildStrategy.ILPack;
-				}
-				else
-				{
-					// Default to default strategy
-					strategyEnum = AssemblyBuildStrategy.Roslyn;
-				}
-			}
-			else
-			{
-				// Fallback: read from config
-				try
-				{
-					var config = PyRevitConfig.Load();
-					strategyEnum = config.NewLoaderRoslyn
-						? AssemblyBuildStrategy.Roslyn
-						: AssemblyBuildStrategy.ILPack;
-				}
-				catch
-				{
-					strategyEnum = AssemblyBuildStrategy.ILPack; 
-				}
-			}
 				var sessionManager = ServiceFactory.CreateSessionManagerService(
 					revitVersion,
 					strategyEnum,

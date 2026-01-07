@@ -158,8 +158,6 @@ class SettingsWindow(forms.WPFWindow):
         self.loadbetatools_cb.IsChecked = user_config.load_beta
         
         self.new_loader.IsChecked = user_config.new_loader
-        self.use_roslyn_loader.IsChecked = user_config.use_roslyn_loader
-        self._update_roslyn_loader_state()
 
         self.minimize_consoles_cb.IsChecked = user_config.output_close_others
 
@@ -522,17 +520,7 @@ class SettingsWindow(forms.WPFWindow):
 
     def new_loader_changed(self, sender, args):
         """Callback method for when new_loader toggle changes"""
-        self._update_roslyn_loader_state()
-
-    def _update_roslyn_loader_state(self):
-        """Enable/disable roslyn loader option based on new_loader state.
-        
-        Roslyn loader option only applies when the new C# loader is enabled,
-        so it should be greyed out when new_loader is disabled.
-        """
-        is_new_loader_enabled = self.new_loader.IsChecked
-        self.use_roslyn_loader.IsEnabled = is_new_loader_enabled
-        self.roslyn_loader_text.IsEnabled = is_new_loader_enabled
+        pass
 
     def copy_envvar_value(self, sender, args):
         """Callback method for copying selected env var value to clipboard"""
@@ -874,7 +862,6 @@ class SettingsWindow(forms.WPFWindow):
 
         user_config.load_beta = self.loadbetatools_cb.IsChecked
         user_config.new_loader = self.new_loader.IsChecked
-        user_config.use_roslyn_loader = self.use_roslyn_loader.IsChecked
 
         user_config.output_close_others = self.minimize_consoles_cb.IsChecked
         if self.closewindows_current_rb.IsChecked:

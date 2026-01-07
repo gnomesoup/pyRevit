@@ -18,7 +18,7 @@ namespace pyRevitExtensionParserTester
         {
             // Create a mock logger for tests
             _mockLogger = new MockPythonLogger();
-            _service = new AssemblyBuilderService(TestRevitVersion, AssemblyBuildStrategy.ILPack, _mockLogger);
+            _service = new AssemblyBuilderService(TestRevitVersion, AssemblyBuildStrategy.Roslyn, _mockLogger);
         }
 
         [Test]
@@ -26,7 +26,7 @@ namespace pyRevitExtensionParserTester
         {
             // Act & Assert
             Assert.Throws<ArgumentNullException>(() => 
-                new AssemblyBuilderService(null, AssemblyBuildStrategy.ILPack, _mockLogger));
+                new AssemblyBuilderService(null, AssemblyBuildStrategy.Roslyn, _mockLogger));
         }
 
         [Test]

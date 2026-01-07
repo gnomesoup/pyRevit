@@ -12,7 +12,6 @@
         <Version>3.4.2</Version>
         <UseRoslyn>true</UseRoslyn>
         <LangVersion>10.0</LangVersion>
-        <UseILPack>true</UseILPack>
         <UseWPF>true</UseWPF>
         <!-- Deploy to both IPY342 and IPY2712PR directories -->
         <DeployToAllVersions>true</DeployToAllVersions>

@@ -3,13 +3,8 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-#if !NETFRAMEWORK
-using System.Runtime.Loader;
-#endif
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Lokad.ILPack;
 using System.Text;
 using pyRevitExtensionParser;
 using pyRevitAssemblyBuilder.SessionManager;
@@ -24,11 +19,7 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
         /// <summary>
         /// Build using Roslyn compiler (C# code generation).
         /// </summary>
-        Roslyn,
-        /// <summary>
-        /// Build using ILPack (Reflection.Emit with IL packing).
-        /// </summary>
-        ILPack
+        Roslyn
     }
 
     /// <summary>
@@ -54,58 +45,6 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
             _revitVersion = revitVersion ?? throw new ArgumentNullException(nameof(revitVersion));
             _buildStrategy = buildStrategy;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            if (_buildStrategy == AssemblyBuildStrategy.ILPack)
-            {
-                // Resolve Lokad.ILPack from two folders up
-                var baseDir = _baseDir;
-                var ilPackPath = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "Lokad.ILPack.dll"));
-                
-                // Try to load directly first, only set up resolver if needed
-                if (File.Exists(ilPackPath))
-                {
-                    try
-                    {
-#if !NETFRAMEWORK
-                        AssemblyLoadContext.Default.LoadFromAssemblyPath(ilPackPath);
-#else
-                        Assembly.LoadFrom(ilPackPath);
-#endif
-                    }
-                    catch
-                    {
-                        // If direct load fails, set up resolver with auto-unsubscribe
-#if !NETFRAMEWORK
-                        Func<AssemblyLoadContext, AssemblyName, Assembly> resolver = null;
-                        resolver = (context, name) =>
-                        {
-                            if (string.Equals(name.Name, "Lokad.ILPack", StringComparison.OrdinalIgnoreCase))
-                            {
-                                // Unsubscribe after resolving to avoid performance impact
-                                AssemblyLoadContext.Default.Resolving -= resolver;
-                                return context.LoadFromAssemblyPath(ilPackPath);
-                            }
-                            return null;
-                        };
-                        AssemblyLoadContext.Default.Resolving += resolver;
-#else
-                        ResolveEventHandler resolver = null;
-                        resolver = (sender, args) =>
-                        {
-                            var name = new AssemblyName(args.Name).Name;
-                            if (string.Equals(name, "Lokad.ILPack", StringComparison.OrdinalIgnoreCase))
-                            {
-                                // Unsubscribe after resolving to avoid performance impact
-                                AppDomain.CurrentDomain.AssemblyResolve -= resolver;
-                                return Assembly.LoadFrom(ilPackPath);
-                            }
-                            return null;
-                        };
-                        AppDomain.CurrentDomain.AssemblyResolve += resolver;
-#endif
-                    }
-                }
-            }
         }
 
         /// <summary>
@@ -169,10 +108,7 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
 
             try
             {
-                if (_buildStrategy == AssemblyBuildStrategy.Roslyn)
-                    BuildWithRoslyn(extension, outputPath, libraryExtensions);
-                else
-                    BuildWithILPack(extension, outputPath, libraryExtensions);
+                BuildWithRoslyn(extension, outputPath, libraryExtensions);
 
                 return new ExtensionAssemblyInfo(extension.Name, outputPath, isReloading: false);
             }
@@ -308,48 +244,6 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
         }
 
         /// <summary>
-        /// Builds an extension assembly using ILPack (Reflection.Emit with IL packing approach).
-        /// </summary>
-        /// <param name="extension">The parsed extension to build.</param>
-        /// <param name="outputPath">The output path for the compiled assembly.</param>
-        /// <param name="libraryExtensions">Optional library extensions to reference.</param>
-        private void BuildWithILPack(ParsedExtension extension, string outputPath, IEnumerable<ParsedExtension> libraryExtensions)
-        {
-            // Load runtime for dependecy (Probably temparary due to future implementation of env loader in C#)
-            var loaderDir = _baseDir;
-            var twoUp = Path.GetFullPath(Path.Combine(loaderDir, "..", ".."));
-            var runtimeName = $"PyRevitLabs.PyRevit.Runtime.{_revitVersion}.dll";
-            var runtimePath = Directory
-                .EnumerateFiles(loaderDir, runtimeName, SearchOption.TopDirectoryOnly)
-                .FirstOrDefault();
-
-            if (runtimePath != null)
-                Assembly.LoadFrom(runtimePath);
-            var generator = new ReflectionEmitCommandTypeGenerator();
-            string assemblyNameStr = Path.GetFileNameWithoutExtension(outputPath);
-            var asmName = new AssemblyName(assemblyNameStr) { Version = new Version(1, 0, 0, 0) };
-            string moduleName = assemblyNameStr;
-
-#if NETFRAMEWORK
-            var asmBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(
-                asmName, AssemblyBuilderAccess.RunAndSave, Path.GetDirectoryName(outputPath));
-            var moduleBuilder = asmBuilder.DefineDynamicModule(moduleName, Path.GetFileName(outputPath));
-#else
-            var asmBuilder = AssemblyBuilder.DefineDynamicAssembly(asmName, AssemblyBuilderAccess.Run);
-            var moduleBuilder = asmBuilder.DefineDynamicModule(moduleName);
-#endif
-
-            foreach (var cmd in extension.CollectCommandComponents())
-                generator.DefineCommandType(extension, cmd, moduleBuilder, libraryExtensions, _revitVersion);
-
-#if NETFRAMEWORK
-            asmBuilder.Save(Path.GetFileName(outputPath));
-#else
-            new AssemblyGenerator().GenerateAssembly(asmBuilder, outputPath);
-#endif
-        }
-
-        /// <summary>
         /// Resolves and returns the metadata references required for Roslyn compilation.
         /// </summary>
         /// <remarks>
@@ -380,13 +274,12 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
         /// The hash is computed using SHA1 algorithm and returns a 40-character hexadecimal string.
         /// The input should include:
         /// - Extension structure hash (from extension.GetHash())
-        /// - Build strategy seed ("ILPack" or "Roslyn")
+        /// - Build strategy seed ("Roslyn")
         /// - Revit version
         /// 
         /// This ensures that assemblies are only regenerated when:
         /// 1. The extension structure changes
-        /// 2. The build strategy changes (ILPack vs Roslyn)
-        /// 3. The Revit version changes
+        /// 2. The Revit version changes
         /// </remarks>
         /// <param name="input">The string to hash, typically a concatenation of extension hash, strategy seed, and Revit version.</param>
         /// <returns>A 40-character lowercase hexadecimal string representing the SHA1 hash.</returns>
