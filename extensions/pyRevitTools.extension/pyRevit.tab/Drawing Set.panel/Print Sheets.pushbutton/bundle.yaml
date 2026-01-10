@@ -1,21 +1,41 @@
+
+title:
+  en_us: |-
+    Print
+    Sheets
+  fr_fr: |-
+    Imprimer
+    Feuilles
+  ru: |-
+    Печатать
+    листы
+  chinese_s: 打印图纸
+  es_es: |-
+    Imprimir
+    Hojas
+  de_de: |-
+    Pläne
+    drucken
 tooltip:
-  ru: >-
-    Печатает листы по индексу листа.
+  en_us: |-
+    Print sheets in order from a sheet index.
 
-    Примечание:
-    Когда используется опция 'Объединение листы в один файл'
-    инструмент добавляет не печатаемый символ u'\u200e'
-    (Left-To-Right Mark) в начале имен листов,
-    чтобы использовать внутренний механизм печати Revit
-    для корректной сортировки листов по индексу листа.
+    Note:
+    When using the `Combine into one file` option
+    in Revit 2022 and earlier,
+    the tool adds non-printable character u'\u200e'
+    (Left-To-Right Mark) at the start of the sheet names
+    to push Revit's interenal printing engine to sort
+    the sheets correctly per the drawing index order. 
 
-    Убедитесь, что ваши индексы учитывают
-    это при фильтрации по номерам листов.
+    Make sure your drawings indices consider this
+    when filtering for sheet numbers.
 
     Shift-Click:
-
-    Удаляет все непечатаемые символы из номеров листов,
-    если скрипт отработал некорректно.
+    Shift-Clicking the tool will remove all
+    non-printable characters from the sheet numbers,
+    in case an error in the tool causes these characters
+    to remain.
   fr_fr: >-
     Imprimez les feuilles dans l'ordre à partir d'un index de feuille.
 
@@ -37,25 +57,43 @@ tooltip:
     caractères non-imprimables des numéros de feuilles,
     en cas d'erreur dans l'outil, cela entraînerait la conservation de ces
     caractères.
-  en_us: |-
-    Print sheets in order from a sheet index.
+  ru: >-
+    Печатает листы по индексу листа.
 
-    Note:
-    When using the `Combine into one file` option
-    in Revit 2022 and earlier,
-    the tool adds non-printable character u'\u200e'
-    (Left-To-Right Mark) at the start of the sheet names
-    to push Revit's interenal printing engine to sort
-    the sheets correctly per the drawing index order. 
+    Примечание:
+    Когда используется опция 'Объединение листы в один файл'
+    инструмент добавляет не печатаемый символ u'\u200e'
+    (Left-To-Right Mark) в начале имен листов,
+    чтобы использовать внутренний механизм печати Revit
+    для корректной сортировки листов по индексу листа.
 
-    Make sure your drawings indices consider this
-    when filtering for sheet numbers.
+    Убедитесь, что ваши индексы учитывают
+    это при фильтрации по номерам листов.
 
     Shift-Click:
-    Shift-Clicking the tool will remove all
-    non-printable characters from the sheet numbers,
-    in case an error in the tool causes these characters
-    to remain.
+
+    Удаляет все непечатаемые символы из номеров листов,
+    если скрипт отработал некорректно.
+  chinese_s: "按图纸索引顺序打印图纸。\n\n注意：\n在 Revit 2022 及更早版本中使用 `Combine into one file`（合并为一个文件）选项时，此工具会在图纸名称的开头添加不可打印字符 u'\\u200e'（左至右标记），以促使 Revit 的内部打印引擎根据图纸索引顺序正确排序图纸。\n\n在按图纸编号筛选时，请确保您的图纸索引考虑到这一点。\n\nShift-单击：\n按住 Shift 键单击此工具，将从图纸编号中移除所有不可打印字符，以防工具出错导致这些字符残留。"
+  es_es: |-
+    Imprimir hojas en orden desde un índice de hojas.
+
+    Nota:
+    Cuando se usa la opción `Combinar en un archivo`
+    en Revit 2022 y versiones anteriores,
+    la herramienta agrega el carácter no imprimible u'\u200e'
+    (Marca de izquierda a derecha) al inicio de los nombres de las hojas
+    para forzar al motor de impresión interno de Revit a ordenar
+    las hojas correctamente según el orden del índice de dibujo.
+
+    Asegúrese de que sus índices de dibujo consideren esto
+    al filtrar por números de hoja.
+
+    Shift-Clic:
+    Al hacer Shift-Clic en la herramienta se eliminarán todos
+    los caracteres no imprimibles de los números de hoja,
+    en caso de que un error en la herramienta cause que estos caracteres
+    permanezcan.
   de_de: |-
     Druckt Pläne in der Reihenfolge eines Planindexes.
 
@@ -74,18 +112,3 @@ tooltip:
     Wenn Sie mit der Umschalttaste auf das Werkzeug klicken, werden alle
     nicht druckbaren Zeichen aus den Plannummern entfernt. Dies ist für den Fall, dass ein 
     Fehler bei der Ausführung dazu führt, dass diese Zeichen im Plan verbleiben.
-  chinese_s: "按图纸索引顺序打印图纸。\n\n注意：\n在 Revit 2022 及更早版本中使用 `Combine into one file`（合并为一个文件）选项时，此工具会在图纸名称的开头添加不可打印字符 u'\\u200e'（左至右标记），以促使 Revit 的内部打印引擎根据图纸索引顺序正确排序图纸。\n\n在按图纸编号筛选时，请确保您的图纸索引考虑到这一点。\n\nShift-单击：\n按住 Shift 键单击此工具，将从图纸编号中移除所有不可打印字符，以防工具出错导致这些字符残留。"
-title:
-  ru: |-
-    Печатать
-    листы
-  fr_fr: |-
-    Imprimer
-    Feuilles
-  en_us: |-
-    Print
-    Sheets
-  de_de: |-
-    Pläne
-    drucken
-  chinese_s: 打印图纸

@@ -1,12 +1,13 @@
 title:
-  ru: Предыдущий
-  fr_fr: Précédent
   en_us: Prev
-  de_de: Vorheriges Element im Speicher wählen
+  fr_fr: Précédent
+  ru: Предыдущий
   chinese_s: 上一个
+  es_es: Prev
+  de_de: Vorheriges Element im Speicher wählen
 tooltip:
-  ru: >-
-    Выбрать предыдущий элемент в памяти выбора.
+  en_us: >-
+    Select previous element in selection memory.
 
     Click +1
 
@@ -17,7 +18,14 @@ tooltip:
     Cliquez sur +1
 
     Shift+Clic +10
-  en_us: >-
+  ru: >-
+    Выбрать предыдущий элемент в памяти выбора.
+
+    Click +1
+
+    Shift+Click +10
+  chinese_s: "在选择内存中选择上一个图元。\n单击：+1\nShift+单击：+10"
+  es_es: >-
     Select previous element in selection memory.
 
     Click +1
@@ -30,4 +38,3 @@ tooltip:
 
     Shift+Click +10
     Wählt das 10. Element im Speicher aus
-  chinese_s: "在选择内存中选择上一个图元。\n单击：+1\nShift+单击：+10"

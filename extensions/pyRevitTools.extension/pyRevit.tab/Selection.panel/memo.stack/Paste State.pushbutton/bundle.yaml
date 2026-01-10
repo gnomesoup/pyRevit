@@ -1,18 +1,19 @@
 title:
-  ru: Вставить
-  fr_fr: Coller l'état
   en_us: Paste State
-  de_de: Zustand einfügen
+  fr_fr: Coller l'état
+  ru: Вставить
   chinese_s: 粘贴状态
+  es_es: Paste State
+  de_de: Zustand einfügen
 tooltip:
-  ru: >-
-    Применяет скопированное состояние к активному виду.
+  en_us: >-
+    Applies the copied state to the active view
 
-    Это работает в сочетании с инструментом "Копировать состояние".
+    This works in conjunction with the Copy State tool
 
     Shift-Click:
 
-    Показать дополнительные настройки.
+    Show additional options
   fr_fr: >-
     Applique l'état copié à la vue active
 
@@ -21,7 +22,16 @@ tooltip:
     Shift-Clic :
 
     Afficher les options supplémentaires
-  en_us: >-
+  ru: >-
+    Применяет скопированное состояние к активному виду.
+
+    Это работает в сочетании с инструментом "Копировать состояние".
+
+    Shift-Click:
+
+    Показать дополнительные настройки.
+  chinese_s: "将复制的状态应用到活动视图\n此工具需与“复制状态”工具配合使用\nShift+单击：\n显示附加选项"
+  es_es: >-
     Applies the copied state to the active view
 
     This works in conjunction with the Copy State tool
@@ -36,8 +46,7 @@ tooltip:
 
     Shift-Click:
 
-    Zeigt zusätzliche Optionen an, z.B. Filter in Ansichtsvorlagen übertragen oder 
-  chinese_s: "将复制的状态应用到活动视图\n此工具需与“复制状态”工具配合使用\nShift+单击：\n显示附加选项"
+    Zeigt zusätzliche Optionen an, z.B. Filter in Ansichtsvorlagen übertragen oder
 author: >-
   Gui Talarico
 

@@ -1,17 +1,19 @@
 title:
-  ru: Раскрасить типы групп
-  fr_fr: Colorer les types de groupes
   en_us: Colorize Group Types
-  de_de: Gruppentypen einfärben
+  fr_fr: Colorer les types de groupes
+  ru: Раскрасить типы групп
   chinese_s: 着色组类型
+  es_es: Colorize Group Types
+  de_de: Gruppentypen einfärben
 tooltip:
-  ru: |-
-    Переопределяет графику в экземплярах групп на выделенных видах или активном виде
-    таким образом, чтобы все экземпляры одного и того же типа группы были отмечены одним цветом.
-    Вы можете выбрать несколько представлений перед запуском инструмента для расскраски всех типов групп.
+  en_us: |-
+    Overrides graphics of groups instances on selected views or
+    active view in such way that all instances of the same group type
+    are marked with the same color. You can select multiple views before
+    running the tool to colorize the group types in all of them at once
 
-    Заметка:
-    Группы только с одним экземпляром на виде будут расскрашены в серый цвет.
+    Note:
+    Groups with only 1 instance on views will be colored in gray
   fr_fr: |-
     Remplace les graphismes des occurences de groupes sur les vues sélectionnées ou
     la vue active de telle sorte que toutes les occurences du même type de groupe
@@ -20,7 +22,15 @@ tooltip:
 
     Noter:
     Les groupes avec une seule occurence dans les vues seront colorés en gris
-  en_us: |-
+  ru: |-
+    Переопределяет графику в экземплярах групп на выделенных видах или активном виде
+    таким образом, чтобы все экземпляры одного и того же типа группы были отмечены одним цветом.
+    Вы можете выбрать несколько представлений перед запуском инструмента для расскраски всех типов групп.
+
+    Заметка:
+    Группы только с одним экземпляром на виде будут расскрашены в серый цвет.
+  chinese_s: "替换选定视图或活动视图中组实例的图形外观，使同一组类型的所有实例均以相同颜色标记。您可以在运行工具前选择多个视图，以便一次性为所有这些视图中的组类型着色\n注意：\n视图中仅存在一个实例的组将显示为灰色。"
+  es_es: |-
     Overrides graphics of groups instances on selected views or
     active view in such way that all instances of the same group type
     are marked with the same color. You can select multiple views before
@@ -38,4 +48,3 @@ tooltip:
 
     Hinweis:
     Gruppentypen von denen nur 1 Exemplar in der Ansicht exitiert, werden grau eingefärbt.
-  chinese_s: "替换选定视图或活动视图中组实例的图形外观，使同一组类型的所有实例均以相同颜色标记。您可以在运行工具前选择多个视图，以便一次性为所有这些视图中的组类型着色\n注意：\n视图中仅存在一个实例的组将显示为灰色。"

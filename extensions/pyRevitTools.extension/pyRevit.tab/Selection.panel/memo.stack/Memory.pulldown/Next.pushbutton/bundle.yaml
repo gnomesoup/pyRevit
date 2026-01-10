@@ -1,14 +1,16 @@
 title:
-  ru: Следующий
-  fr_fr: Suivant
   en_us: Next
-  de_de: Nächstes Element im Speicher wählen
+  fr_fr: Suivant
+  ru: Следующий
   chinese_s: 下一个
+  es_es: Next
+  de_de: Nächstes Element im Speicher wählen
 tooltip:
-  ru: >-
-    Выбрать следующий элемент в памяти выбора.
+  en_us: >-
+    Select next element in selection memory.
 
     Click +1
+
     Shift+Click +10
   fr_fr: >-
     Sélectionnez l'élément suivant dans la mémoire de sélection.
@@ -16,7 +18,13 @@ tooltip:
     Cliquez sur +1
 
     Shift+Clic +10
-  en_us: >-
+  ru: >-
+    Выбрать следующий элемент в памяти выбора.
+
+    Click +1
+    Shift+Click +10
+  chinese_s: "在选择内存中选择下一个图元。\n单击：+1\nShift+单击：+10"
+  es_es: >-
     Select next element in selection memory.
 
     Click +1
@@ -29,4 +37,3 @@ tooltip:
 
     Shift+Click +10
     Wählt das 10. Element im Speicher aus
-  chinese_s: "在选择内存中选择下一个图元。\n单击：+1\nShift+单击：+10"
