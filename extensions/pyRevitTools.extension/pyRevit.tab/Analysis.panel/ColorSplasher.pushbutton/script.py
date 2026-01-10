@@ -971,8 +971,12 @@ class ColorSplasherWindow(forms.WPFWindow):
             ScrollViewer.SetHorizontalScrollBarVisibility(
                 self.list_box2, System.Windows.Controls.ScrollBarVisibility.Auto
             )
-        except Exception:
-            # ScrollViewer setup is optional, continue if it fails
+        except Exception as exc:
+            # Best-effort: if scrollbar configuration fails, continue without breaking the UI  
+            get_logger(__name__).debug(  
+                "Failed to set horizontal scrollbar visibility for ColorSplasher list_box2.",  
+                exc_info=exc,  
+            )
             pass
 
         self.Closing += self.closing_event
