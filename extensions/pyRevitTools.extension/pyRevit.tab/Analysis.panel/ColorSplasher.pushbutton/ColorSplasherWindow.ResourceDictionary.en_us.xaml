@@ -63,6 +63,7 @@
 
     <!-- Placeholders -->
     <system:String x:Key="ColorSplasher.Placeholders.SearchParameters">Search</system:String>
+    <system:String x:Key="ColorSplasher.Placeholders.SelectCategoryAndParameter">Select a category and a parameter to see parameter values</system:String>
 
     <!-- Save/Load Dialog -->
     <system:String x:Key="ColorSplasher.SaveLoadDialog.Title">Save / Load Color Scheme</system:String>

@@ -122,6 +122,7 @@ class SubscribeView(UI.IExternalEventHandler):
                     wndw._table_data_3.Columns.Add("Key", System.String)
                     wndw._table_data_3.Columns.Add("Value", System.Object)
                     wndw.list_box2.ItemsSource = wndw._table_data_3.DefaultView
+                    wndw._update_placeholder_visibility()
 
     def GetName(self):
         return "Subscribe View Changed Event"
@@ -864,6 +865,14 @@ class ColorSplasherWindow(forms.WPFWindow):
         # Setup UI after XAML is loaded
         self._setup_ui()
 
+    def _update_placeholder_visibility(self):
+        """Update the visibility of the placeholder text based on whether list_box2 has items."""
+        from System.Windows import Visibility
+        if self.list_box2.ItemsSource is None or self.list_box2.Items.Count == 0:
+            self._txt_placeholder_values.Visibility = Visibility.Visible
+        else:
+            self._txt_placeholder_values.Visibility = Visibility.Collapsed
+    
     def _setup_ui(self):
         """Setup UI after XAML is loaded. Controls are already created by XAML."""
         # Setup placeholder text for search box
@@ -901,6 +910,8 @@ class ColorSplasherWindow(forms.WPFWindow):
         
         # Initialize list_box2 with empty table
         self.list_box2.ItemsSource = self._table_data_3.DefaultView
+        # Show placeholder initially since list is empty
+        self._update_placeholder_visibility()
         
         # Initialize parameter dropdown with placeholder (will be updated when category is selected)
         if not hasattr(self, '_table_data_2') or self._table_data_2 is None:
@@ -1018,6 +1029,7 @@ class ColorSplasherWindow(forms.WPFWindow):
                 self.list_box2.ItemsSource = self._table_data_3.DefaultView
                 self.list_box2.SelectedIndex = -1
                 self._update_listbox_colors()
+                self._update_placeholder_visibility()
         except Exception:
             external_event_trace()
         self.list_box2.SelectionChanged += self.list_selected_index_changed
@@ -1191,12 +1203,14 @@ class ColorSplasherWindow(forms.WPFWindow):
                         self._table_data_3.Columns.Add("Key", System.String)
                         self._table_data_3.Columns.Add("Value", System.Object)
                         self.list_box2.ItemsSource = self._table_data_3.DefaultView
+                        self._update_placeholder_visibility()
                         return
             # Clear the values listbox
             self._table_data_3 = DataTable("Data")
             self._table_data_3.Columns.Add("Key", System.String)
             self._table_data_3.Columns.Add("Value", System.Object)
             self.list_box2.ItemsSource = self._table_data_3.DefaultView
+            self._update_placeholder_visibility()
             return
         
         # Get selected parameter
@@ -1235,6 +1249,7 @@ class ColorSplasherWindow(forms.WPFWindow):
         if self._table_data_3.Rows.Count == 0:
             logger.debug("No rows in table, clearing ListBox")
             self.list_box2.ItemsSource = None
+            self._update_placeholder_visibility()
             return
         
         # Set ItemsSource - this will populate the ListBox
@@ -1247,6 +1262,7 @@ class ColorSplasherWindow(forms.WPFWindow):
         # Set ItemsSource directly (we're already on UI thread)
         self.list_box2.ItemsSource = default_view
         self.list_box2.SelectedIndex = -1
+        self._update_placeholder_visibility()
         
         # Force UI update
         self.list_box2.UpdateLayout()
@@ -1264,6 +1280,7 @@ class ColorSplasherWindow(forms.WPFWindow):
                 self.list_box2.ItemsSource = None
                 self.list_box2.ItemsSource = default_view
                 self.list_box2.UpdateLayout()
+                self._update_placeholder_visibility()
                 logger.debug("After refresh - Items.Count: %d", self.list_box2.Items.Count)
             except Exception as ex:
                 logger.debug("Error refreshing view: %s", str(ex))
@@ -1336,11 +1353,13 @@ class ColorSplasherWindow(forms.WPFWindow):
             self._search_box.Text = placeholder_text
             self._search_box.Foreground = Brushes.Gray
             self.list_box2.ItemsSource = self._table_data_3.DefaultView
+            self._update_placeholder_visibility()
         else:
             self._all_parameters = []
             self._list_box1.ItemsSource = self._table_data_2.DefaultView
             self._list_box1.SelectedIndex = 0  # Select the placeholder item
             self.list_box2.ItemsSource = self._table_data_3.DefaultView
+            self._update_placeholder_visibility()
 
     def on_search_text_changed(self, sender, e):
         """Filter parameters based on search text"""

@@ -63,6 +63,7 @@
 
     <!-- Placeholders -->
     <system:String x:Key="ColorSplasher.Placeholders.SearchParameters">Buscar</system:String>
+    <system:String x:Key="ColorSplasher.Placeholders.SelectCategoryAndParameter">Seleccione una categoría y un parámetro para ver los valores de los parámetros</system:String>
 
     <!-- Save/Load Dialog -->
     <system:String x:Key="ColorSplasher.SaveLoadDialog.Title">Guardar / Cargar Esquema de Colores</system:String>

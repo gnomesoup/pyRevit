@@ -63,6 +63,7 @@
 
     <!-- Placeholders -->
     <system:String x:Key="ColorSplasher.Placeholders.SearchParameters">搜索</system:String>
+    <system:String x:Key="ColorSplasher.Placeholders.SelectCategoryAndParameter">选择一个类别和一个参数以查看参数值</system:String>
 
     <!-- Save/Load Dialog -->
     <system:String x:Key="ColorSplasher.SaveLoadDialog.Title">保存 / 加载颜色方案</system:String>
