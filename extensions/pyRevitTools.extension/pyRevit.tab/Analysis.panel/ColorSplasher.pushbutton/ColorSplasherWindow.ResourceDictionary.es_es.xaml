@@ -22,6 +22,8 @@
     <system:String x:Key="ColorSplasher.Buttons.Reset">Restablecer</system:String>
     <system:String x:Key="ColorSplasher.Buttons.CreateLegend">Crear Leyenda</system:String>
     <system:String x:Key="ColorSplasher.Buttons.CreateViewFilters">Crear Filtros de Vista</system:String>
+    <system:String x:Key="ColorSplasher.Buttons.SelectAll">Seleccionar Todo</system:String>
+    <system:String x:Key="ColorSplasher.Buttons.SelectNone">Deseleccionar Todo</system:String>
 
     <!-- Checkboxes -->
     <system:String x:Key="ColorSplasher.Checkboxes.ApplyLineColor">Aplicar Color de Línea</system:String>
@@ -44,6 +46,8 @@
     <system:String x:Key="ColorSplasher.Tooltips.ApplyForegroundPattern">Cuando está habilitado, aplica el color a los colores de patrón de primer plano de superficie y corte.</system:String>
     <system:String x:Key="ColorSplasher.Tooltips.ApplyBackgroundPattern">Cuando está habilitado, aplica el color a los colores de patrón de fondo de superficie y corte. Requiere Revit 2019 o posterior.</system:String>
     <system:String x:Key="ColorSplasher.Tooltips.SearchParameters">Escriba para buscar y filtrar parámetros.</system:String>
+    <system:String x:Key="ColorSplasher.Tooltips.SelectAll">Seleccionar todos los elementos de todos los valores de parámetros.</system:String>
+    <system:String x:Key="ColorSplasher.Tooltips.SelectNone">Limpiar la selección actual en Revit.</system:String>
 
     <!-- Messages -->
     <system:String x:Key="ColorSplasher.Messages.SelectCategoryHere">¡Seleccione una Categoría Aquí!</system:String>
@@ -64,6 +68,7 @@
     <!-- Placeholders -->
     <system:String x:Key="ColorSplasher.Placeholders.SearchParameters">Buscar Parámetros...</system:String>
     <system:String x:Key="ColorSplasher.Placeholders.SelectCategoryAndParameter">Seleccione una categoría y un parámetro para ver los valores de los parámetros</system:String>
+    <system:String x:Key="ColorSplasher.Messages.ShiftClickToSelect">Mayús+Clic para seleccionar elementos</system:String>
 
     <!-- Save/Load Dialog -->
     <system:String x:Key="ColorSplasher.SaveLoadDialog.Title">Guardar / Cargar Esquema de Colores</system:String>
@@ -92,14 +97,4 @@
     <!-- Legend Name Prefix -->
     <system:String x:Key="ColorSplasher.LegendNamePrefix">Color Splasher - </system:String>
 
-    <!-- Buttons -->
-    <system:String x:Key="ColorSplasher.Buttons.SelectAll">Seleccionar todo</system:String>
-    <system:String x:Key="ColorSplasher.Buttons.SelectNone">Deseleccionar todo</system:String>
-
-    <!-- Tooltips -->
-    <system:String x:Key="ColorSplasher.Tooltips.SelectAll">Seleccionar todos los valores</system:String>
-    <system:String x:Key="ColorSplasher.Tooltips.SelectNone">Deseleccionar todos los valores</system:String>
-
-    <!-- Messages -->
-    <system:String x:Key="ColorSplasher.Messages.ShiftClickToSelect">Mayús+clic para seleccionar un rango de valores.</system:String>
 </ResourceDictionary>

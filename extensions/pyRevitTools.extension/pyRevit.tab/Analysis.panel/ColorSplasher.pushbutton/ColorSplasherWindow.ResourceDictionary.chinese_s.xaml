@@ -22,6 +22,8 @@
     <system:String x:Key="ColorSplasher.Buttons.Reset">重置</system:String>
     <system:String x:Key="ColorSplasher.Buttons.CreateLegend">创建图例</system:String>
     <system:String x:Key="ColorSplasher.Buttons.CreateViewFilters">创建视图过滤器</system:String>
+    <system:String x:Key="ColorSplasher.Buttons.SelectAll">全选</system:String>
+    <system:String x:Key="ColorSplasher.Buttons.SelectNone">全不选</system:String>
 
     <!-- Checkboxes -->
     <system:String x:Key="ColorSplasher.Checkboxes.ApplyLineColor">应用线颜色</system:String>
@@ -44,6 +46,8 @@
     <system:String x:Key="ColorSplasher.Tooltips.ApplyForegroundPattern">启用后，将颜色应用于表面和切割的前景图案颜色。</system:String>
     <system:String x:Key="ColorSplasher.Tooltips.ApplyBackgroundPattern">启用后，将颜色应用于表面和切割的背景图案颜色。需要 Revit 2019 或更高版本。</system:String>
     <system:String x:Key="ColorSplasher.Tooltips.SearchParameters">输入以搜索和过滤参数。</system:String>
+    <system:String x:Key="ColorSplasher.Tooltips.SelectAll">选择所有元素的所有参数值。</system:String>
+    <system:String x:Key="ColorSplasher.Tooltips.SelectNone">清除 Revit 中的当前选择。</system:String>
 
     <!-- Messages -->
     <system:String x:Key="ColorSplasher.Messages.SelectCategoryHere">请在此处选择类别！</system:String>
@@ -93,11 +97,4 @@
     <!-- Legend Name Prefix -->
     <system:String x:Key="ColorSplasher.LegendNamePrefix">Color Splasher - </system:String>
 
-    <!-- Select All / Select None Buttons -->
-    <system:String x:Key="ColorSplasher.Buttons.SelectAll">全选</system:String>
-    <system:String x:Key="ColorSplasher.Buttons.SelectNone">全不选</system:String>
-
-   <!-- Select All / Select None Tooltips -->
-   <system:String x:Key="ColorSplasher.Tooltips.SelectAll">选择所有项</system:String>
-   <system:String x:Key="ColorSplasher.Tooltips.SelectNone">取消所有选择</system:String>
 </ResourceDictionary>
