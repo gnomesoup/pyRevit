@@ -325,6 +325,11 @@ def load_family(family_file, doc=None):
 
     WARNING! This function MUST be used within a transaction!
 
+    Changed:
+        Previously returned bool (True on success, False on failure).
+        Now returns list[DB.FamilySymbol] (non-empty list on success, empty list on failure).
+        The return value is still truthy/falsy compatible for boolean checks.
+
     Example:
         from pyrevit.revit.db import create, transaction
         
