@@ -1,27 +1,27 @@
 title:
   en_us: >-
     Tag
-  
+
     Selected
   fr_fr: >-
     Étiquete
-  
+
     Sélectionnée
   ru: >-
     Пометить
-  
+
     выделенное
   chinese_s: >-
     标记
-  
+
     选定的
   es_es: >-
     Etiqueta
-  
+
     Seleccionada
   de_de: >-
     Ausgewählte
-  
+
     taggen
 tooltip:
   en_us: Apply tag to selected elements. First you need to create a project parameter 'DOCTAG' and apply it to the project categories

@@ -1,27 +1,27 @@
 title:
   en_us: >-
     Manage
-  
+
     Packages
   fr_fr: >-
     Gérer
-  
+
     Paquets
   ru: >-
     Править
-    
+
     листы
   chinese_s: >-
     管理
-  
+
     包
   es_es: >-
     Gestionar
-  
+
     Paquetes
   de_de: >-
     Pakete 
-    
+
     verwalten
 tooltip:
   en_us: Manage sheet packages
