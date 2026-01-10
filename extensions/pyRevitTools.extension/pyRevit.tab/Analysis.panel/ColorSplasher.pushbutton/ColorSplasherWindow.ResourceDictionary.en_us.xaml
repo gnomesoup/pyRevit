@@ -66,7 +66,7 @@
     <system:String x:Key="ColorSplasher.Messages.UnableToAccessDocument.Content">Please ensure you have a Revit project open and try again.</system:String>
 
     <!-- Placeholders -->
-    <system:String x:Key="ColorSplasher.Placeholders.SearchParameters">Search</system:String>
+    <system:String x:Key="ColorSplasher.Placeholders.SearchParameters">Search Parameters...</system:String>
     <system:String x:Key="ColorSplasher.Placeholders.SelectCategoryAndParameter">Select a category and a parameter to see parameter values</system:String>
     <system:String x:Key="ColorSplasher.Messages.ShiftClickToSelect">Shift+Click to select elements</system:String>
 

@@ -62,7 +62,7 @@
     <system:String x:Key="ColorSplasher.Messages.UnableToAccessDocument.Content">Por favor, asegúrese de tener un proyecto de Revit abierto e intente nuevamente.</system:String>
 
     <!-- Placeholders -->
-    <system:String x:Key="ColorSplasher.Placeholders.SearchParameters">Buscar</system:String>
+    <system:String x:Key="ColorSplasher.Placeholders.SearchParameters">Buscar Parámetros...</system:String>
     <system:String x:Key="ColorSplasher.Placeholders.SelectCategoryAndParameter">Seleccione una categoría y un parámetro para ver los valores de los parámetros</system:String>
 
     <!-- Save/Load Dialog -->

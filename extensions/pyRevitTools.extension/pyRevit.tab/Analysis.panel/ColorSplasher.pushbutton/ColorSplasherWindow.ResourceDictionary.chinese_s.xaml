@@ -62,8 +62,9 @@
     <system:String x:Key="ColorSplasher.Messages.UnableToAccessDocument.Content">请确保已打开 Revit 项目，然后重试。</system:String>
 
     <!-- Placeholders -->
-    <system:String x:Key="ColorSplasher.Placeholders.SearchParameters">搜索</system:String>
+    <system:String x:Key="ColorSplasher.Placeholders.SearchParameters">搜索参数...</system:String>
     <system:String x:Key="ColorSplasher.Placeholders.SelectCategoryAndParameter">选择一个类别和一个参数以查看参数值</system:String>
+    <system:String x:Key="ColorSplasher.Messages.ShiftClickToSelect">Shift+点击以选择元素</system:String>
 
     <!-- Save/Load Dialog -->
     <system:String x:Key="ColorSplasher.SaveLoadDialog.Title">保存 / 加载颜色方案</system:String>
