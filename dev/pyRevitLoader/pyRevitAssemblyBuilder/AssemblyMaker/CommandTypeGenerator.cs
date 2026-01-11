@@ -60,8 +60,14 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
                     }
                 }
                 
-                searchPathsList.Add(Path.Combine(extension.Directory, "..", "..", "pyrevitlib"));
-                searchPathsList.Add(Path.Combine(extension.Directory, "..", "..", "site-packages"));
+                // Only add core pyRevit paths if NOT using clean engine
+                // When clean: true, the user wants an isolated environment
+                bool isCleanEngine = cmd.Engine?.Clean ?? false;
+                if (!isCleanEngine)
+                {
+                    searchPathsList.Add(Path.Combine(extension.Directory, "..", "..", "pyrevitlib"));
+                    searchPathsList.Add(Path.Combine(extension.Directory, "..", "..", "site-packages"));
+                }
                 
                 string searchPaths = string.Join(";", searchPathsList);
                 string tooltip = cmd.Tooltip ?? string.Empty;
