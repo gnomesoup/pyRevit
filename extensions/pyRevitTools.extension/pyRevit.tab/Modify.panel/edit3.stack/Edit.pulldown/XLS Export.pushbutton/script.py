@@ -50,13 +50,13 @@ ElementDef = namedtuple(
 )
 
 
-def get_unit_label_and_value(param_val, forge_type_id, field, project_units):
+def get_unit_label_and_value(param, forge_type_id, field, project_units):
     """
-    Returns (converted_value, label_string, unit_type_id, symbol_type_id) for a parameter value.
+    Returns (converted_value, label_string, unit_type_id, symbol_type_id) for a parameter.
     Respects schedule field overrides if provided, otherwise uses project units.
     """
     if not forge_type_id or not DB.UnitUtils.IsMeasurableSpec(forge_type_id):
-        return param_val.AsValueString(), "", None, None
+        return param.AsValueString(), "", None, None
 
     # Prefer field overrides, otherwise project units
     fmt_opts = None
@@ -82,7 +82,7 @@ def get_unit_label_and_value(param_val, forge_type_id, field, project_units):
     symbol_id = fmt_opts.GetSymbolTypeId()
 
     # Convert
-    val = DB.UnitUtils.ConvertFromInternalUnits(param_val.AsDouble(), unit_id)
+    val = DB.UnitUtils.ConvertFromInternalUnits(param.AsDouble(), unit_id)
 
     # Label
     label = ""
@@ -462,16 +462,16 @@ def export_xls(src_elements, selected_params, field_mapping=None):
     for row_idx, el in enumerate(src_elements, start=1):
         worksheet.write(row_idx, 0, str(get_elementid_value(el.Id)), locked)
 
-        for col_idx, param in enumerate(valid_params):
-            param_name = param.name
-            param_val = el.LookupParameter(param_name)
+        for col_idx, valid_param in enumerate(valid_params):
+            param_name = valid_param.name
+            param = el.LookupParameter(param_name)
             val = "<does not exist>"
             cell_format = locked
-            if param_val:
+            if param:
                 val = ""
-                if param_val.HasValue:
+                if param.HasValue:
                     try:
-                        if param_val.StorageType == DB.StorageType.Double:
+                        if param.StorageType == DB.StorageType.Double:
                             forge_type_id = param.forge_type_id
                             field = field_mapping.get(param_name)
 
@@ -480,20 +480,21 @@ def export_xls(src_elements, selected_params, field_mapping=None):
                             ):
                                 # Use helper function to get proper conversion
                                 val, _, _, _ = get_unit_label_and_value(
-                                    param_val, forge_type_id, field, project_units
+                                    param, forge_type_id, field, project_units
                                 )
                             else:
-                                val = param_val.AsDouble()
-                        elif param_val.StorageType == DB.StorageType.String:
-                            val = param_val.AsString()
-                        elif param_val.StorageType == DB.StorageType.Integer:
-                            # Check if this is a Yes/No parameter using helper function
-                            if is_yesno_parameter(param.definition):
-                                val = "Yes" if param_val.AsInteger() else "No"
+                                val = param.AsDouble()
+                        elif param.StorageType == DB.StorageType.String:
+                            val = param.AsString()
+                        elif param.StorageType == DB.StorageType.Integer:
+                            if get_elementid_value(param.Id) == int(DB.BuiltInParameter.ELEM_PARTITION_PARAM):
+                                val = str(revit.query.get_element_workset(el).Name)
+                            elif is_yesno_parameter(param.definition):
+                                val = "Yes" if param.AsInteger() else "No"
                             else:
-                                val = str(param_val.AsInteger())
-                        elif param_val.StorageType == DB.StorageType.ElementId:
-                            val = param_val.AsValueString()
+                                val = str(param.AsInteger())
+                        elif param.StorageType == DB.StorageType.ElementId:
+                            val = param.AsValueString()
                         else:
                             val = "<unsupported>"
                     except Exception as e:
@@ -505,7 +506,7 @@ def export_xls(src_elements, selected_params, field_mapping=None):
                         val = "<Error>"
 
                 # Cell is unlocked only if parameter exists, has value, and is not read-only
-                if not param.isreadonly:
+                if not valid_param.isreadonly:
                     cell_format = unlocked
             # If param doesn't exist or has no value, cell remains locked
 

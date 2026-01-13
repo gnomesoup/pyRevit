@@ -5,8 +5,9 @@ import re
 from pyrevit import script, forms, revit, HOST_APP
 from pyrevit import DB
 from pyrevit.revit import get_parameter_data_type, is_yesno_parameter
-from pyrevit.compat import get_elementid_from_value_func
+from pyrevit.compat import get_elementid_value_func, get_elementid_from_value_func
 
+get_elementid_value = get_elementid_value_func()
 get_elementid_from_value = get_elementid_from_value_func()
 
 logger = script.get_logger()
@@ -26,7 +27,6 @@ def load_metadata(workbook):
     metadata = {}
     try:
         metadata_sheet = workbook.sheet_by_name("_metadata")
-        # Skip header row
         for row_idx in range(1, metadata_sheet.nrows):
             row = metadata_sheet.row_values(row_idx)
             if len(row) < 5:
@@ -38,7 +38,6 @@ def load_metadata(workbook):
             symbol_type_id_str = row[3]
             is_override = row[4]
 
-            # Reconstruct ForgeTypeId objects from strings
             forge_type_id = None
             unit_type_id = None
             symbol_type_id = None
@@ -102,7 +101,6 @@ def main():
 
     param_names = headers[1:]
 
-    # Load metadata if available
     metadata = load_metadata(workbook)
 
     with revit.Transaction("Import Parameters from Excel"):
@@ -144,16 +142,25 @@ def main():
                             param.Set(str(new_val))
                         elif storage_type == DB.StorageType.Integer:
                             try:
-                                if is_yesno_parameter(param.Definition):
-                                    # Handle Yes/No as string or numeric
+                                if get_elementid_value(param.Id) == int(
+                                    DB.BuiltInParameter.ELEM_PARTITION_PARAM
+                                ):
                                     try:
-                                        # Check if it's a string-like type
+                                        ws_name = str(new_val)
+                                        ws = revit.query.find_workset(ws_name)
+                                        if ws:
+                                            param.Set(ws.Id.IntegerValue)
+                                        else:
+                                            logger.warning("Workset {} not found".format(ws_name))
+                                    except Exception:
+                                        logger.warning("Failed to set Workset for {}".format(el_id_val))
+                                elif is_yesno_parameter(param.Definition):
+                                    try:
                                         str_val = str(new_val).strip().lower()
                                         int_val = (
                                             1 if str_val in ("yes", "1", "true") else 0
                                         )
                                     except (AttributeError, TypeError):
-                                        # Not a string, treat as numeric
                                         int_val = int(float(new_val))
                                     param.Set(int_val)
                                 else:
@@ -165,7 +172,6 @@ def main():
                                     )
                                 )
                         elif storage_type == DB.StorageType.Double:
-                            # Check if we have metadata for this parameter
                             unit_type_id = None
                             if param_name in metadata:
                                 forge_type_id, meta_unit_id, _, is_override = metadata[
@@ -208,7 +214,6 @@ def main():
                                             )
                                         )
 
-                            # Convert and set value
                             if unit_type_id:
                                 try:
                                     new_val = DB.UnitUtils.ConvertToInternalUnits(
@@ -222,15 +227,25 @@ def main():
                                         )
                                     )
                             else:
-                                # No unit conversion needed
                                 param.Set(float(new_val))
                         elif storage_type == DB.StorageType.ElementId:
-                            logger.info(
-                                "Skipping ElementId parameter '{}': not supported.".format(
-                                    param_name
+                            try:
+                                bic = doc.GetElement(param.AsElementId()).Category.BuiltInCategory
+                                collector = revit.query.get_elements_by_categories([bic])
+                                for bic_el in collector:
+                                    if bic_el.Name == new_val:
+                                        found_id = bic_el.Id
+                                        break
+                                if found_id:
+                                    param.Set(found_id)
+                                else:
+                                    raise Exception
+                            except Exception:
+                                logger.info(
+                                    "Skipping ElementId parameter '{}': not supported.".format(
+                                        param_name
+                                    )
                                 )
-                            )
-
                         else:
                             logger.warning(
                                 "Unknown storage type for parameter '{}'.".format(
