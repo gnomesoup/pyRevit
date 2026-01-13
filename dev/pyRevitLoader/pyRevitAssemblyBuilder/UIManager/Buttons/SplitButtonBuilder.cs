@@ -107,9 +107,18 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
                 Logger.Debug($"Failed to set IsSynchronizedWithCurrentItem for split button '{component.DisplayName}'. Exception: {ex.Message}");
             }
 
+            // Check if children already exist (reload scenario)
+            var existingItems = GetExistingChildButtons(splitBtn);
+            if (existingItems.Count > 0)
+            {
+                Logger.Debug($"Split button '{component.DisplayName}' already has {existingItems.Count} children - updating existing buttons.");
+                UpdateExistingChildren(splitBtn, component, existingItems);
+                return;
+            }
+
             PushButton? firstButton = null;
             int childCount = 0;
-            
+
             foreach (var sub in component.Children ?? Enumerable.Empty<ParsedComponent>())
             {
                 if (sub.Type == CommandComponentType.Separator)
@@ -200,6 +209,72 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
                 catch (Exception ex)
                 {
                     Logger.Debug($"Failed to set current button for split button '{component.DisplayName}'. Exception: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets existing child buttons from a split button.
+        /// </summary>
+        private System.Collections.Generic.List<RibbonItem> GetExistingChildButtons(SplitButton splitBtn)
+        {
+            var result = new System.Collections.Generic.List<RibbonItem>();
+            try
+            {
+                var items = splitBtn.GetItems();
+                if (items != null)
+                {
+                    foreach (var item in items)
+                    {
+                        if (item != null)
+                            result.Add(item);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug($"Error getting existing children from split button: {ex.Message}");
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Updates existing child buttons in a split button during reload.
+        /// </summary>
+        private void UpdateExistingChildren(SplitButton splitBtn, ParsedComponent component, System.Collections.Generic.List<RibbonItem> existingItems)
+        {
+            // Build a dictionary of existing items by name for quick lookup
+            var existingByName = new System.Collections.Generic.Dictionary<string, PushButton>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in existingItems)
+            {
+                if (item is PushButton pb && !string.IsNullOrEmpty(pb.Name))
+                {
+                    existingByName[pb.Name] = pb;
+                }
+            }
+
+            foreach (var sub in component.Children ?? Enumerable.Empty<ParsedComponent>())
+            {
+                if (sub.Type == CommandComponentType.Separator)
+                    continue;
+
+                // Try to find existing button by name
+                if (existingByName.TryGetValue(sub.DisplayName, out var existingBtn))
+                {
+                    // Update existing button properties
+                    try
+                    {
+                        var buttonText = ButtonPostProcessor.GetButtonText(sub);
+                        existingBtn.ItemText = buttonText;
+                        ButtonPostProcessor.Process(existingBtn, sub, component);
+                        existingBtn.Enabled = true;
+                        existingBtn.Visible = true;
+                        Logger.Debug($"Updated existing child button '{sub.DisplayName}' in split button '{component.DisplayName}'.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Debug($"Failed to update child button '{sub.DisplayName}': {ex.Message}");
+                    }
                 }
             }
         }

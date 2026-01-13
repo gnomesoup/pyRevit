@@ -102,6 +102,15 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
         /// </summary>
         public void AddChildrenToPulldown(PulldownButton pdBtn, ParsedComponent component, ExtensionAssemblyInfo assemblyInfo)
         {
+            // Check if children already exist (reload scenario)
+            var existingItems = GetExistingChildButtons(pdBtn);
+            if (existingItems.Count > 0)
+            {
+                Logger.Debug($"Pulldown button '{component.DisplayName}' already has {existingItems.Count} children - updating existing buttons.");
+                UpdateExistingChildren(pdBtn, component, existingItems);
+                return;
+            }
+
             foreach (var sub in component.Children ?? Enumerable.Empty<ParsedComponent>())
             {
                 if (sub.Type == CommandComponentType.Separator)
@@ -161,6 +170,72 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
                         {
                             ButtonPostProcessor.Process(linkSubBtn, sub, component, IconMode.SmallToBoth);
                         }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets existing child buttons from a pulldown button.
+        /// </summary>
+        private List<RibbonItem> GetExistingChildButtons(PulldownButton pdBtn)
+        {
+            var result = new List<RibbonItem>();
+            try
+            {
+                var items = pdBtn.GetItems();
+                if (items != null)
+                {
+                    foreach (var item in items)
+                    {
+                        if (item != null)
+                            result.Add(item);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug($"Error getting existing children from pulldown button: {ex.Message}");
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Updates existing child buttons in a pulldown button during reload.
+        /// </summary>
+        private void UpdateExistingChildren(PulldownButton pdBtn, ParsedComponent component, List<RibbonItem> existingItems)
+        {
+            // Build a dictionary of existing items by name for quick lookup
+            var existingByName = new Dictionary<string, PushButton>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in existingItems)
+            {
+                if (item is PushButton pb && !string.IsNullOrEmpty(pb.Name))
+                {
+                    existingByName[pb.Name] = pb;
+                }
+            }
+
+            foreach (var sub in component.Children ?? Enumerable.Empty<ParsedComponent>())
+            {
+                if (sub.Type == CommandComponentType.Separator)
+                    continue;
+
+                // Try to find existing button by name
+                if (existingByName.TryGetValue(sub.DisplayName, out var existingBtn))
+                {
+                    // Update existing button properties
+                    try
+                    {
+                        var buttonText = ButtonPostProcessor.GetButtonText(sub);
+                        existingBtn.ItemText = buttonText;
+                        ButtonPostProcessor.Process(existingBtn, sub, component, IconMode.SmallToBoth);
+                        existingBtn.Enabled = true;
+                        existingBtn.Visible = true;
+                        Logger.Debug($"Updated existing child button '{sub.DisplayName}' in pulldown button '{component.DisplayName}'.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Debug($"Failed to update child button '{sub.DisplayName}': {ex.Message}");
                     }
                 }
             }

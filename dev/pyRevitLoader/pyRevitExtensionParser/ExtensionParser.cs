@@ -99,11 +99,11 @@ namespace pyRevitExtensionParser
         {
             if (_cachedExtensionRoots == null)
             {
-                var config = GetConfig();
                 // Initialize locale from config before parsing
                 InitializeLocaleFromConfig();
+                // GetExtensionRoots already reads userextensions from config file,
+                // so we don't need to add UserExtensionsList again (which would cause duplicates)
                 _cachedExtensionRoots = GetExtensionRoots();
-                _cachedExtensionRoots.AddRange(config.UserExtensionsList);
             }
             return _cachedExtensionRoots;
         }
@@ -111,6 +111,11 @@ namespace pyRevitExtensionParser
         public static IEnumerable<ParsedExtension> ParseInstalledExtensions()
         {
             var extensionRoots = GetCachedExtensionRoots();
+
+            // Track discovered extension directories to avoid duplicates
+            // This can happen when the same extension is in multiple roots or
+            // when userextensions paths overlap with default paths
+            var discoveredExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var root in extensionRoots)
             {
@@ -120,13 +125,22 @@ namespace pyRevitExtensionParser
                 // Parse .extension directories (UI extensions)
                 foreach (var extDir in Directory.GetDirectories(root, "*.extension"))
                 {
-                    yield return ParseExtension(extDir);
+                    // Use full path for deduplication
+                    var fullPath = Path.GetFullPath(extDir);
+                    if (discoveredExtensions.Add(fullPath))
+                    {
+                        yield return ParseExtension(extDir);
+                    }
                 }
 
                 // Parse .lib directories (Library extensions)
                 foreach (var libDir in Directory.GetDirectories(root, "*.lib"))
                 {
-                    yield return ParseExtension(libDir);
+                    var fullPath = Path.GetFullPath(libDir);
+                    if (discoveredExtensions.Add(fullPath))
+                    {
+                        yield return ParseExtension(libDir);
+                    }
                 }
             }
         }

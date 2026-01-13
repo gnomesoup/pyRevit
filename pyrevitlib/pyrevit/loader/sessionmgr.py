@@ -318,9 +318,9 @@ def _new_session_csharp():
 def _register_loaded_pyrevit_assemblies():
     """Find and register pyRevit assemblies loaded by the C# session manager.
     
-    Scans all loaded assemblies in the current AppDomain to find pyRevit
-    extension assemblies (name pattern: pyRevit_{version}_{hash}_{extName})
-    and registers them with sessioninfo so find_pyrevitcmd can locate commands.
+    Scans all loaded assemblies in the AppDomain to find pyRevit extension assemblies.
+    Note: .NET cannot unload assemblies, so count may include old assemblies from 
+    previous reloads - this is expected behavior.
     """
     pyrevit_assemblies = []
     
@@ -335,7 +335,7 @@ def _register_loaded_pyrevit_assemblies():
     
     if pyrevit_assemblies:
         sessioninfo.set_loaded_pyrevit_assemblies(pyrevit_assemblies)
-        mlogger.info('Registered %d pyRevit assemblies', len(pyrevit_assemblies))
+        # mlogger.info('Registered %d pyRevit assemblies', len(pyrevit_assemblies))
     else:
         mlogger.warning('No pyRevit assemblies found')
 

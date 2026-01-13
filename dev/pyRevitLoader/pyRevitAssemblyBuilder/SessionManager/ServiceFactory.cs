@@ -196,7 +196,15 @@ namespace pyRevitAssemblyBuilder.SessionManager
         /// <param name="buttonBuilderFactory">The button builder factory instance.</param>
         /// <param name="stackBuilder">The stack builder instance.</param>
         /// <param name="comboBoxBuilder">The combo box builder instance.</param>
-        /// <returns>A new IUIManagerService instance.</returns>
+        /// <returns>A new IUIRibbonScanner instance.</returns>
+        public static IUIRibbonScanner CreateUIRibbonScanner(ILogger logger)
+        {
+            return new RibbonScanner(logger);
+        }
+
+        /// <summary>
+        /// Creates a UIManagerService instance.
+        /// </summary>
         public static IUIManagerService CreateUIManagerService(
             UIApplication uiApplication,
             ILogger logger,
@@ -205,7 +213,8 @@ namespace pyRevitAssemblyBuilder.SessionManager
             IPanelBuilder panelBuilder,
             IButtonBuilderFactory buttonBuilderFactory,
             IStackBuilder stackBuilder,
-            IComboBoxBuilder comboBoxBuilder)
+            IComboBoxBuilder comboBoxBuilder,
+            IUIRibbonScanner? ribbonScanner = null)
         {
             return new UIManagerService(
                 uiApplication,
@@ -215,7 +224,8 @@ namespace pyRevitAssemblyBuilder.SessionManager
                 panelBuilder,
                 buttonBuilderFactory,
                 stackBuilder,
-                comboBoxBuilder);
+                comboBoxBuilder,
+                ribbonScanner);
         }
 
         /// <summary>
@@ -254,7 +264,10 @@ namespace pyRevitAssemblyBuilder.SessionManager
             var stackBuilder = CreateStackBuilder(uiApplication, logger, buttonPostProcessor);
             var comboBoxBuilder = CreateComboBoxBuilder(uiApplication, logger, buttonPostProcessor);
             
-            // Create UIManager with all dependencies
+            // Create ribbon scanner for UI cleanup
+            var ribbonScanner = CreateUIRibbonScanner(logger);
+
+            // Create UIManager with all dependencies including ribbon scanner
             var uiManager = CreateUIManagerService(
                 uiApplication,
                 logger,
@@ -263,13 +276,15 @@ namespace pyRevitAssemblyBuilder.SessionManager
                 panelBuilder,
                 buttonBuilderFactory,
                 stackBuilder,
-                comboBoxBuilder);
+                comboBoxBuilder,
+                ribbonScanner);
 
             return new SessionManagerService(
-                assemblyBuilder, 
+                assemblyBuilder,
                 extensionManager,
                 hookManager,
                 uiManager,
+                ribbonScanner,
                 logger);
         }
         
@@ -281,6 +296,7 @@ namespace pyRevitAssemblyBuilder.SessionManager
         /// <param name="extensionManager">Custom extension manager service.</param>
         /// <param name="hookManager">Custom hook manager.</param>
         /// <param name="uiManager">Custom UI manager service.</param>
+        /// <param name="ribbonScanner">Custom ribbon scanner service.</param>
         /// <param name="logger">Custom logger.</param>
         /// <returns>A new ISessionManagerService instance.</returns>
         public static ISessionManagerService CreateSessionManagerService(
@@ -288,6 +304,7 @@ namespace pyRevitAssemblyBuilder.SessionManager
             IExtensionManagerService extensionManager,
             IHookManager hookManager,
             IUIManagerService uiManager,
+            IUIRibbonScanner ribbonScanner,
             ILogger logger)
         {
             return new SessionManagerService(
@@ -295,6 +312,7 @@ namespace pyRevitAssemblyBuilder.SessionManager
                 extensionManager,
                 hookManager,
                 uiManager,
+                ribbonScanner,
                 logger);
         }
     }
