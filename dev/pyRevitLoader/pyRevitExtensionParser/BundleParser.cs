@@ -36,6 +36,27 @@ namespace pyRevitExtensionParser
         );
 
         /// <summary>
+        /// Regex pattern for matching valid language codes.
+        /// Matches patterns like: en_us, fr_fr, de_de, ru, es, chinese_s, chinese_t
+        /// </summary>
+        private static readonly Regex _languageCodePattern = new Regex(
+            @"^[a-z]{2,10}(_[a-z]{1,4})?$",
+            RegexOptions.Compiled
+        );
+
+        /// <summary>
+        /// Checks if a potential key looks like a valid language code.
+        /// Language codes follow patterns like: en_us, fr_fr, de_de, ru, chinese_s, chinese_t
+        /// </summary>
+        private static bool IsValidLanguageCode(string key)
+        {
+            if (string.IsNullOrEmpty(key) || key.Length > 12 || key.Contains(" "))
+                return false;
+
+            return _languageCodePattern.IsMatch(key);
+        }
+
+        /// <summary>
         /// Represents a cached bundle with its last modification time for invalidation.
         /// </summary>
         private struct CachedBundle
@@ -185,10 +206,10 @@ namespace pyRevitExtensionParser
                             line.Contains(":"))
                         {
                             // Check if this looks like a language key (short alphanumeric before colon)
+                            // Must match valid language code pattern like "en_us", "fr_fr", "de_de", "ru"
                             var colonIdx = line.IndexOf(':');
                             var potentialKey = line.Substring(0, colonIdx).Trim();
-                            // Language keys are typically short (e.g., "ru", "en_us", "fr_fr", "de_de", "chinese_s")
-                            if (potentialKey.Length <= 12 && !potentialKey.Contains(" "))
+                            if (IsValidLanguageCode(potentialKey))
                             {
                                 isNewLanguageKey = true;
                             }
@@ -289,7 +310,31 @@ namespace pyRevitExtensionParser
             switch (state.CurrentSection)
             {
                 case "author":
-                    parsed.Author = value;
+                    // Handle multiline indicators or simple author string
+                    if (value == "|-")
+                    {
+                        // Literal multiline (preserve line breaks)
+                        state.IsInMultilineValue = true;
+                        state.IsLiteralMultiline = true;
+                        state.CurrentLanguageKey = "_author_";
+                    }
+                    else if (value == ">-")
+                    {
+                        // Folded multiline (join lines)
+                        state.IsInMultilineValue = true;
+                        state.IsFoldedMultiline = true;
+                        state.CurrentLanguageKey = "_author_";
+                    }
+                    else if (value == "|" || value == ">")
+                    {
+                        // Legacy multiline
+                        state.IsInMultilineValue = true;
+                        state.CurrentLanguageKey = "_author_";
+                    }
+                    else if (!string.IsNullOrEmpty(value))
+                    {
+                        parsed.Author = StripQuotes(value);
+                    }
                     break;
                 case "min_revit_version":
                     parsed.MinRevitVersion = value;
@@ -859,8 +904,8 @@ namespace pyRevitExtensionParser
         /// </summary>
         private static void FinishMultilineValue(ParsedBundle parsed, ParserState state)
         {
-            if (state.MultilineContent.Count == 0 || 
-                string.IsNullOrEmpty(state.CurrentLanguageKey) || 
+            if (state.MultilineContent.Count == 0 ||
+                string.IsNullOrEmpty(state.CurrentLanguageKey) ||
                 string.IsNullOrEmpty(state.CurrentSection))
                 return;
 
@@ -873,6 +918,8 @@ namespace pyRevitExtensionParser
                 parsed.Titles[state.CurrentLanguageKey] = processedValue;
             else if (state.CurrentSection == "tooltip" || state.CurrentSection == "tooltips")
                 parsed.Tooltips[state.CurrentLanguageKey] = processedValue;
+            else if (state.CurrentSection == "author")
+                parsed.Author = processedValue;
         }
 
         /// <summary>
@@ -915,7 +962,7 @@ namespace pyRevitExtensionParser
                             result.Add(string.Join(" ", currentParagraph));
                             currentParagraph.Clear();
                         }
-                        // Don't add empty string - the newline between paragraphs 
+                        // Don't add empty string - the newline between paragraphs
                         // comes from joining result list with "\n"
                     }
                     else
