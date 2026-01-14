@@ -4,7 +4,7 @@
     xmlns:system="clr-namespace:System;assembly=mscorlib">
 
     <!-- Window Title -->
-    <system:String x:Key="ColorSplasher.Title">按参数着色元素</system:String>
+    <system:String x:Key="ColorSplasher.Title">按参数值着色元素</system:String>
 
     <!-- Section Labels -->
     <system:String x:Key="ColorSplasher.Labels.CategorySelection">类别选择</system:String>

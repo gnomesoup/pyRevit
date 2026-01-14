@@ -4,7 +4,7 @@
     xmlns:system="clr-namespace:System;assembly=mscorlib">
 
     <!-- Window Title -->
-    <system:String x:Key="ColorSplasher.Title">Color Elements By Parameter</system:String>
+    <system:String x:Key="ColorSplasher.Title">Color Elements By Parameter Value</system:String>
 
     <!-- Section Labels -->
     <system:String x:Key="ColorSplasher.Labels.CategorySelection">Category Selection</system:String>
