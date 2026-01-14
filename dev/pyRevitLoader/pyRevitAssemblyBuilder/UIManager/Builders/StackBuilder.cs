@@ -58,19 +58,33 @@ namespace pyRevitAssemblyBuilder.UIManager.Builders
                 return;
             }
 
+            var children = (component.Children ?? Enumerable.Empty<ParsedComponent>()).ToList();
+            if (children.Count < 2)
+            {
+                _logger.Debug($"Stack '{component.DisplayName}' has fewer than 2 items, skipping.");
+                return;
+            }
+
+            // Check if the stack already exists by looking for the first child's DisplayName
+            // This matches Python's behavior where button name = folder basename
+            var firstChildDisplayName = children[0].DisplayName;
+            var existingItems = TryGetExistingStackItems(parentPanel, firstChildDisplayName, children.Count);
+
+            if (existingItems != null && existingItems.Count > 0)
+            {
+                // Stack already exists - update the existing items instead of creating new ones
+                // This handles the reload case where the stack was already created
+                _logger.Debug($"Stack '{component.DisplayName}' already exists. Updating {existingItems.Count} existing items.");
+                UpdateExistingStackItems(existingItems, children, assemblyInfo);
+                return;
+            }
+
+            // Create new stack items
             var itemDataList = new List<RibbonItemData>();
             var originalItems = new List<ParsedComponent>();
 
-            foreach (var child in component.Children ?? Enumerable.Empty<ParsedComponent>())
+            foreach (var child in children)
             {
-                // Skip if this item already exists in the panel (e.g., during reload)
-                // Check by DisplayName since that's what's used for the button's internal Name property
-                if (ItemExistsInPanel(parentPanel, child.DisplayName))
-                {
-                    _logger.Debug($"Skipping stack item '{child.DisplayName}' - already exists in panel.");
-                    return; // If any item exists, the whole stack was already added
-                }
-
                 if (child.Type == CommandComponentType.PushButton ||
                     child.Type == CommandComponentType.SmartButton ||
                     child.Type == CommandComponentType.UrlButton ||
@@ -98,7 +112,7 @@ namespace pyRevitAssemblyBuilder.UIManager.Builders
                     itemDataList.Add(pdData);
                     originalItems.Add(child);
                 }
-                else if (child.Type == CommandComponentType.SplitButton || 
+                else if (child.Type == CommandComponentType.SplitButton ||
                          child.Type == CommandComponentType.SplitPushButton)
                 {
                     // Use localized title which handles fallback to DisplayName
@@ -125,7 +139,103 @@ namespace pyRevitAssemblyBuilder.UIManager.Builders
             }
             else
             {
-                _logger.Debug($"Stack '{component.DisplayName}' has fewer than 2 items, skipping.");
+                _logger.Debug($"Stack '{component.DisplayName}' has fewer than 2 items after filtering, skipping.");
+            }
+        }
+
+        /// <summary>
+        /// Tries to find existing stack items in the panel by looking for buttons with matching DisplayName.
+        /// </summary>
+        private List<RibbonItem>? TryGetExistingStackItems(RibbonPanel panel, string firstItemDisplayName, int expectedCount)
+        {
+            try
+            {
+                var existingItems = panel.GetItems();
+
+                // Look for a button with the DisplayName of the first child
+                // This indicates the stack was already created in this session
+                var matchingItem = existingItems.FirstOrDefault(item => item.Name == firstItemDisplayName);
+
+                if (matchingItem == null)
+                    return null;
+
+                // Found the first item - now find adjacent items that form the stack
+                // Stack items are added together and should be adjacent in the panel
+                var itemIndex = existingItems.IndexOf(matchingItem);
+                var stackItems = new List<RibbonItem>();
+
+                // Collect items that appear to be part of this stack
+                // We look for items added right after the first one
+                for (int i = itemIndex; i < Math.Min(itemIndex + expectedCount, existingItems.Count); i++)
+                {
+                    stackItems.Add(existingItems[i]);
+                }
+
+                return stackItems.Count >= 2 ? stackItems : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"Error finding existing stack items: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Updates existing stack items with new configuration (title, icon, tooltip, etc.)
+        /// This is called when a stack already exists and we need to update it during reload.
+        /// </summary>
+        private void UpdateExistingStackItems(List<RibbonItem> existingItems, List<ParsedComponent> children, ExtensionAssemblyInfo assemblyInfo)
+        {
+            var minCount = Math.Min(existingItems.Count, children.Count);
+
+            for (int i = 0; i < minCount; i++)
+            {
+                var ribbonItem = existingItems[i];
+                var childComponent = children[i];
+
+                try
+                {
+                    // Update the display text (ItemText) in case Title changed
+                    var newTitle = ExtensionParser.GetComponentTitle(childComponent);
+                    ribbonItem.ItemText = newTitle;
+
+                    // Update visibility and enabled state
+                    ribbonItem.Visible = true;
+                    ribbonItem.Enabled = true;
+
+                    // Apply post-processing (icon, tooltip, etc.)
+                    if (ribbonItem is PushButton pushBtn)
+                    {
+                        _buttonPostProcessor.Process(pushBtn, childComponent);
+
+                        // Execute __selfinit__ for SmartButtons
+                        if (childComponent.Type == CommandComponentType.SmartButton && _smartButtonScriptInitializer != null)
+                        {
+                            var shouldActivate = _smartButtonScriptInitializer.ExecuteSelfInit(childComponent, pushBtn);
+                            if (!shouldActivate)
+                            {
+                                pushBtn.Enabled = false;
+                                _logger.Debug($"SmartButton '{childComponent.DisplayName}' in stack deactivated by __selfinit__.");
+                            }
+                        }
+                    }
+                    else if (ribbonItem is PulldownButton pdBtn)
+                    {
+                        _buttonPostProcessor.Process(pdBtn, childComponent);
+                        _pulldownButtonBuilder.AddChildrenToPulldown(pdBtn, childComponent, assemblyInfo);
+                    }
+                    else if (ribbonItem is SplitButton splitBtn)
+                    {
+                        _buttonPostProcessor.Process(splitBtn, childComponent);
+                        _splitButtonBuilder.AddChildrenToSplitButton(splitBtn, childComponent, assemblyInfo);
+                    }
+
+                    _logger.Debug($"Updated existing stack item '{childComponent.DisplayName}' (index {i}).");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"Error updating stack item '{childComponent.DisplayName}': {ex.Message}");
+                }
             }
         }
 

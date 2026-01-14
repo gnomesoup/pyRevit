@@ -52,13 +52,62 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
                 return;
             }
 
-            if (ItemExistsInPanel(parentPanel, component.DisplayName))
+            // Check if pulldown button already exists - if so, update it instead of creating new
+            var existingPdBtn = GetExistingPulldownButton(parentPanel, component.DisplayName);
+            if (existingPdBtn != null)
             {
-                Logger.Debug($"Pulldown button '{component.DisplayName}' already exists in panel.");
+                Logger.Debug($"Pulldown button '{component.DisplayName}' already exists - updating.");
+                UpdateExistingPulldownButton(existingPdBtn, component, assemblyInfo);
                 return;
             }
 
             CreatePulldown(component, parentPanel, tabName, assemblyInfo, addToPanel: true);
+        }
+
+        /// <summary>
+        /// Gets an existing pulldown button from the panel by name.
+        /// </summary>
+        private PulldownButton? GetExistingPulldownButton(RibbonPanel panel, string buttonName)
+        {
+            try
+            {
+                var items = panel.GetItems();
+                foreach (var item in items)
+                {
+                    if (item.Name == buttonName && item is PulldownButton pb)
+                        return pb;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug($"Error getting existing pulldown button '{buttonName}': {ex.Message}");
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Updates an existing pulldown button with new configuration.
+        /// </summary>
+        private void UpdateExistingPulldownButton(PulldownButton pdBtn, ParsedComponent component, ExtensionAssemblyInfo assemblyInfo)
+        {
+            try
+            {
+                // Update display text
+                var pulldownText = ExtensionParser.GetComponentTitle(component);
+                pdBtn.ItemText = pulldownText;
+
+                // Re-apply post-processing (icon, tooltip, etc.)
+                ButtonPostProcessor.Process(pdBtn, component);
+
+                // Update children
+                AddChildrenToPulldown(pdBtn, component, assemblyInfo);
+
+                Logger.Debug($"Updated existing pulldown button '{component.DisplayName}'.");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to update pulldown button '{component.DisplayName}': {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -212,13 +261,18 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
                 if (item is PushButton pb && !string.IsNullOrEmpty(pb.Name))
                 {
                     existingByName[pb.Name] = pb;
+                    Logger.Debug($"Found existing child in pulldown: Name='{pb.Name}', ItemText='{pb.ItemText}'");
                 }
             }
+
+            Logger.Debug($"Updating {component.Children?.Count ?? 0} children in pulldown '{component.DisplayName}'. Found {existingByName.Count} existing buttons.");
 
             foreach (var sub in component.Children ?? Enumerable.Empty<ParsedComponent>())
             {
                 if (sub.Type == CommandComponentType.Separator)
                     continue;
+
+                Logger.Debug($"Looking for child '{sub.DisplayName}' in pulldown '{component.DisplayName}'...");
 
                 // Try to find existing button by name
                 if (existingByName.TryGetValue(sub.DisplayName, out var existingBtn))
@@ -226,17 +280,28 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
                     // Update existing button properties
                     try
                     {
+                        // Update display text
                         var buttonText = ButtonPostProcessor.GetButtonText(sub);
                         existingBtn.ItemText = buttonText;
+
+                        // Re-apply all post-processing (icon, tooltip, highlight)
+                        // This ensures changes to bundle.yaml are reflected
                         ButtonPostProcessor.Process(existingBtn, sub, component, IconMode.SmallToBoth);
+
+                        // Ensure button is active
                         existingBtn.Enabled = true;
                         existingBtn.Visible = true;
-                        Logger.Debug($"Updated existing child button '{sub.DisplayName}' in pulldown button '{component.DisplayName}'.");
+
+                        Logger.Debug($"Updated existing child button '{sub.DisplayName}' in pulldown '{component.DisplayName}'. New text: '{buttonText}'");
                     }
                     catch (Exception ex)
                     {
-                        Logger.Debug($"Failed to update child button '{sub.DisplayName}': {ex.Message}");
+                        Logger.Error($"Failed to update child button '{sub.DisplayName}' in pulldown: {ex.Message}");
                     }
+                }
+                else
+                {
+                    Logger.Debug($"Child '{sub.DisplayName}' not found in existing buttons. Available: [{string.Join(", ", existingByName.Keys)}]");
                 }
             }
         }

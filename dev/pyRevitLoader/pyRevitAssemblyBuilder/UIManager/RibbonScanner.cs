@@ -150,15 +150,47 @@ namespace pyRevitAssemblyBuilder.UIManager
             {
                 if (item == null) continue;
 
-                var buttonName = item.AutomationName ?? item.Id ?? "";
+                // Handle RibbonRowPanel (stack) specially - its children should use panelName as parent
+                // This matches how UIManagerService marks stack children:
+                //   _ribbonScanner?.MarkElementTouched("button", child.DisplayName, panelName);
+                if (item is RibbonRowPanel rowPanel && rowPanel.Items != null)
+                {
+                    // Scan stack items with panelName as parent (not the row panel's name)
+                    foreach (var stackItem in rowPanel.Items)
+                    {
+                        if (stackItem == null) continue;
+
+                        var stackItemName = GetButtonIdentifier(stackItem);
+                        if (string.IsNullOrEmpty(stackItemName))
+                            continue;
+
+                        // Use panelName as parent to match UIManagerService's MarkElementTouched
+                        var stackItemKey = BuildKey("button", stackItemName, panelName);
+                        _elementRegistry[stackItemKey] = false;
+                        count++;
+
+                        // Also scan children of stack items (e.g., split buttons in stack)
+                        if (stackItem is RibbonSplitButton splitInStack && splitInStack.Items != null)
+                        {
+                            count += ScanContainerItems(splitInStack.Items, stackItemName);
+                        }
+                        else if (stackItem is RibbonMenuButton menuInStack && menuInStack.Items != null)
+                        {
+                            count += ScanContainerItems(menuInStack.Items, stackItemName);
+                        }
+                    }
+                    continue;
+                }
+
+                var buttonName = GetButtonIdentifier(item);
                 if (string.IsNullOrEmpty(buttonName))
                     continue;
 
-                var buttonKey = BuildKey("button", buttonName, panelName);
-                _elementRegistry[buttonKey] = false;
+                var itemKey = BuildKey("button", buttonName, panelName);
+                _elementRegistry[itemKey] = false;
                 count++;
 
-                // Scan children of container buttons (split buttons, pulldowns, stacks)
+                // Scan children of container buttons (split buttons, pulldowns)
                 if (item is RibbonSplitButton splitButton && splitButton.Items != null)
                 {
                     count += ScanContainerItems(splitButton.Items, buttonName);
@@ -166,10 +198,6 @@ namespace pyRevitAssemblyBuilder.UIManager
                 else if (item is RibbonMenuButton menuButton && menuButton.Items != null)
                 {
                     count += ScanContainerItems(menuButton.Items, buttonName);
-                }
-                else if (item is RibbonRowPanel rowPanel && rowPanel.Items != null)
-                {
-                    count += ScanContainerItems(rowPanel.Items, buttonName);
                 }
             }
             return count;
@@ -185,7 +213,7 @@ namespace pyRevitAssemblyBuilder.UIManager
             {
                 if (item == null) continue;
 
-                var buttonName = item.AutomationName ?? item.Id ?? "";
+                var buttonName = GetButtonIdentifier(item);
                 if (string.IsNullOrEmpty(buttonName))
                     continue;
 
@@ -194,6 +222,33 @@ namespace pyRevitAssemblyBuilder.UIManager
                 count++;
             }
             return count;
+        }
+
+        /// <summary>
+        /// Gets the identifier for a ribbon item used for tracking.
+        /// Extracts the button's internal name from the Id property.
+        /// </summary>
+        private static string GetButtonIdentifier(RibbonItem item)
+        {
+            // The Id property contains the control ID in format like:
+            // "CustomCtrl_%CustomCtrl_%Add-Ins%TabName%ButtonName" or just "ButtonName"
+            // We need to extract the last segment which is the button's DisplayName
+            // This matches what UIManagerService.MarkElementTouched() uses (DisplayName from folder basename)
+
+            var id = item.Id;
+            if (!string.IsNullOrEmpty(id))
+            {
+                // Extract the last segment after the last '%' character
+                var lastPercentIndex = id.LastIndexOf('%');
+                if (lastPercentIndex >= 0 && lastPercentIndex < id.Length - 1)
+                {
+                    return id.Substring(lastPercentIndex + 1);
+                }
+                return id; // Return as-is if no '%' found
+            }
+
+            // Fallback to AutomationName if Id is not available
+            return item.AutomationName ?? "";
         }
 
         /// <summary>
@@ -314,7 +369,28 @@ namespace pyRevitAssemblyBuilder.UIManager
                                 {
                                     if (item == null) continue;
 
-                                    var buttonName = item.AutomationName ?? item.Id ?? "";
+                                    // Handle RibbonRowPanel (stack) - check children with panelName as parent
+                                    if (item is RibbonRowPanel rowPanel && rowPanel.Items != null)
+                                    {
+                                        foreach (var stackItem in rowPanel.Items.ToList())
+                                        {
+                                            if (stackItem == null) continue;
+
+                                            var stackItemName = GetButtonIdentifier(stackItem);
+                                            var stackItemKey = BuildKey("button", stackItemName, panelName);
+
+                                            if (untouchedElements.Contains(stackItemKey))
+                                            {
+                                                DeactivateItem(stackItem);
+                                                hiddenCount++;
+                                                _logger.Debug($"Deactivated orphaned stack item: {stackItemName}");
+                                            }
+                                        }
+                                        continue;
+                                    }
+
+                                    // Use same identifier method as scanning for consistency
+                                    var buttonName = GetButtonIdentifier(item);
                                     var buttonKey = BuildKey("button", buttonName, panelName);
 
                                     if (untouchedElements.Contains(buttonKey))

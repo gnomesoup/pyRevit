@@ -52,9 +52,12 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
                 return;
             }
 
-            if (ItemExistsInPanel(parentPanel, component.DisplayName))
+            // Check if split button already exists - if so, update it instead of creating new
+            var existingSplitBtn = GetExistingSplitButton(parentPanel, component.DisplayName);
+            if (existingSplitBtn != null)
             {
-                Logger.Debug($"Split button '{component.DisplayName}' already exists in panel.");
+                Logger.Debug($"Split button '{component.DisplayName}' already exists - updating.");
+                UpdateExistingSplitButton(existingSplitBtn, component, assemblyInfo);
                 return;
             }
 
@@ -79,6 +82,52 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
             catch (Exception ex)
             {
                 Logger.Error($"Failed to create split button '{component.DisplayName}'. Exception: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gets an existing split button from the panel by name.
+        /// </summary>
+        private SplitButton? GetExistingSplitButton(RibbonPanel panel, string buttonName)
+        {
+            try
+            {
+                var items = panel.GetItems();
+                foreach (var item in items)
+                {
+                    if (item.Name == buttonName && item is SplitButton sb)
+                        return sb;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug($"Error getting existing split button '{buttonName}': {ex.Message}");
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Updates an existing split button with new configuration.
+        /// </summary>
+        private void UpdateExistingSplitButton(SplitButton splitBtn, ParsedComponent component, ExtensionAssemblyInfo assemblyInfo)
+        {
+            try
+            {
+                // Update display text
+                var splitButtonText = ButtonPostProcessor.GetButtonText(component);
+                splitBtn.ItemText = splitButtonText;
+
+                // Re-apply post-processing (icon, tooltip, etc.)
+                ButtonPostProcessor.Process(splitBtn, component);
+
+                // Update children
+                AddChildrenToSplitButton(splitBtn, component, assemblyInfo);
+
+                Logger.Debug($"Updated existing split button '{component.DisplayName}'.");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to update split button '{component.DisplayName}': {ex.Message}");
             }
         }
 
@@ -240,6 +289,7 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
 
         /// <summary>
         /// Updates existing child buttons in a split button during reload.
+        /// Matches Python's behavior where existing buttons are updated with new properties.
         /// </summary>
         private void UpdateExistingChildren(SplitButton splitBtn, ParsedComponent component, System.Collections.Generic.List<RibbonItem> existingItems)
         {
@@ -250,13 +300,18 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
                 if (item is PushButton pb && !string.IsNullOrEmpty(pb.Name))
                 {
                     existingByName[pb.Name] = pb;
+                    Logger.Debug($"Found existing child in split button: Name='{pb.Name}', ItemText='{pb.ItemText}'");
                 }
             }
+
+            Logger.Debug($"Updating {component.Children?.Count ?? 0} children in split button '{component.DisplayName}'. Found {existingByName.Count} existing buttons.");
 
             foreach (var sub in component.Children ?? Enumerable.Empty<ParsedComponent>())
             {
                 if (sub.Type == CommandComponentType.Separator)
                     continue;
+
+                Logger.Debug($"Looking for child '{sub.DisplayName}' in split button '{component.DisplayName}'...");
 
                 // Try to find existing button by name
                 if (existingByName.TryGetValue(sub.DisplayName, out var existingBtn))
@@ -264,17 +319,28 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
                     // Update existing button properties
                     try
                     {
+                        // Update display text
                         var buttonText = ButtonPostProcessor.GetButtonText(sub);
                         existingBtn.ItemText = buttonText;
+
+                        // Re-apply all post-processing (icon, tooltip, highlight)
+                        // This ensures changes to bundle.yaml are reflected
                         ButtonPostProcessor.Process(existingBtn, sub, component);
+
+                        // Ensure button is active
                         existingBtn.Enabled = true;
                         existingBtn.Visible = true;
-                        Logger.Debug($"Updated existing child button '{sub.DisplayName}' in split button '{component.DisplayName}'.");
+
+                        Logger.Debug($"Updated existing child button '{sub.DisplayName}' in split button '{component.DisplayName}'. New text: '{buttonText}'");
                     }
                     catch (Exception ex)
                     {
-                        Logger.Debug($"Failed to update child button '{sub.DisplayName}': {ex.Message}");
+                        Logger.Error($"Failed to update child button '{sub.DisplayName}' in split button: {ex.Message}");
                     }
+                }
+                else
+                {
+                    Logger.Debug($"Child '{sub.DisplayName}' not found in existing buttons. Available: [{string.Join(", ", existingByName.Keys)}]");
                 }
             }
         }
