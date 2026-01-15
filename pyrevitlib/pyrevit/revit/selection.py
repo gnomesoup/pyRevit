@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """Elements selection utilities."""
 from pyrevit import HOST_APP, DOCS, PyRevitException
-from pyrevit import framework, DB, UI
+from pyrevit import framework, revit, DB, UI
 from pyrevit.coreutils.logger import get_logger
 
 from pyrevit.revit import ensure
 from pyrevit.revit import query
-from pyrevit.revit import Transaction
 from Autodesk.Revit import Exceptions as RevitExceptions
 
 
@@ -469,7 +468,7 @@ def pick_point(message=''):
     active_view = doc.ActiveView
     try:
         if active_view.SketchPlane is None:
-            with Transaction(transaction_text, doc=doc):
+            with revit.Transaction(transaction_text, doc=doc):
                 sketch_plane = DB.SketchPlane.Create(
                     doc,
                     DB.Plane.CreateByNormalAndOrigin(
