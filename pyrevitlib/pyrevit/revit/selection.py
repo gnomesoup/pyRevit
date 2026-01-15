@@ -446,6 +446,32 @@ def pick_point(message=''):
         (tuple or None): A tuple representing the picked point as (x, y, z)
             coordinates, or None if no point was picked or an error occurred.
     """
+    revit_language_enum = HOST_APP.language
+    revit_language = str(revit_language_enum)
+    # Translation dictionaries using simple language names as keys
+    translations = {
+        "English": "Assigning a workplane to the current view",
+        "French": "Attribution d'un plan de travail à la vue actuelle",
+        "German": "Zuweisen einer Arbeitsebene zur aktuellen Ansicht",
+        "Spanish": "Asignar un plano de trabajo a la vista actual",
+        "Russian": "Назначение рабочей плоскости текущему виду",
+    }
+    # Default to English if language not found
+    transaction_text = translations.get(revit_language, translations["English"])
+
+    doc = HOST_APP.doc
+    active_view = doc.ActiveView
+    if active_view.SketchPlane == None:
+        with Transaction(transaction_text):
+            sketchPlane = DB.SketchPlane.Create(
+                doc,
+                DB.Plane.CreateByNormalAndOrigin(
+                    active_view.ViewDirection,
+                    active_view.Origin
+                )  # the created plane coincides with the view level
+            )
+            active_view.SketchPlane = sketchPlane
+
     try:
         return HOST_APP.uidoc.Selection.PickPoint(message)
     except Exception:
