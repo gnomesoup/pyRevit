@@ -6,6 +6,7 @@ from pyrevit.coreutils.logger import get_logger
 
 from pyrevit.revit import ensure
 from pyrevit.revit import query
+from pyrevit.revit import Transaction
 from Autodesk.Revit import Exceptions as RevitExceptions
 
 
@@ -445,6 +446,11 @@ def pick_point(message=''):
     Returns:
         (tuple or None): A tuple representing the picked point as (x, y, z)
             coordinates, or None if no point was picked or an error occurred.
+
+    Side Effects:
+        If the active view does not have a ``SketchPlane`` assigned, this
+        function will automatically create a work plane (aligned with the
+        active view) and assign it to the view before prompting for the point.
     """
     revit_language_enum = HOST_APP.language
     revit_language = str(revit_language_enum)
@@ -461,18 +467,18 @@ def pick_point(message=''):
 
     doc = HOST_APP.doc
     active_view = doc.ActiveView
-    if active_view.SketchPlane is None:
-        with Transaction(transaction_text):
-            sketchPlane = DB.SketchPlane.Create(
-                doc,
-                DB.Plane.CreateByNormalAndOrigin(
-                    active_view.ViewDirection,
-                    active_view.Origin
-                )  # the created plane coincides with the view level
-            )
-            active_view.SketchPlane = sketchPlane
-
     try:
+        if active_view.SketchPlane is None:
+            with Transaction(transaction_text, doc=doc):
+                sketch_plane = DB.SketchPlane.Create(
+                    doc,
+                    DB.Plane.CreateByNormalAndOrigin(
+                        active_view.ViewDirection,
+                        active_view.Origin
+                    )  # the created plane coincides with the view's orientation and origin
+                )
+                active_view.SketchPlane = sketch_plane
+
         return HOST_APP.uidoc.Selection.PickPoint(message)
     except Exception:
         return None
