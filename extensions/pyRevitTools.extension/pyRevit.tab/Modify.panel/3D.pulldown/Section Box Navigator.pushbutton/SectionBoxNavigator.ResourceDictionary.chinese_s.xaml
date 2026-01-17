@@ -52,4 +52,76 @@
     <system:String x:Key="ShowPreviewOnHover">悬停时显示预览</system:String>
     <system:String x:Key="UpdateUIOnEvents">在事件时更新界面</system:String>
     <system:String x:Key="IncludeLinkedLevelsAndGrids">包含链接的标高和网格</system:String>
+    
+    <!-- Dynamic UI strings -->
+    <system:String x:Key="AlignWith3DView">与三维视图对齐</system:String>
+    <system:String x:Key="AlignWith2DView">与二维视图对齐</system:String>
+    <system:String x:Key="NoSectionBoxActive">没有活动的剖面框</system:String>
+    <system:String x:Key="AboveTopFormat">顶部上方：{0} @ {1}</system:String>
+    <system:String x:Key="NoLevelAboveTop">顶部上方没有标高</system:String>
+    <system:String x:Key="BelowTopFormat">顶部下方：{0} @ {1}</system:String>
+    <system:String x:Key="NoLevelBelowTop">顶部下方没有标高</system:String>
+    <system:String x:Key="TopOfBoxFormat">框顶部：{0}</system:String>
+    <system:String x:Key="AboveBottomFormat">底部上方：{0} @ {1}</system:String>
+    <system:String x:Key="NoLevelAboveBottom">底部上方没有标高</system:String>
+    <system:String x:Key="BelowBottomFormat">底部下方：{0} @ {1}</system:String>
+    <system:String x:Key="NoLevelBelowBottom">底部下方没有标高</system:String>
+    <system:String x:Key="BottomOfBoxFormat">框底部：{0}</system:String>
+    <system:String x:Key="LengthLabelAdjust">长度标签（在项目单位中调整）：</system:String>
+    
+    <!-- Status messages -->
+    <system:String x:Key="CannotFindLevelsInDirection">在该方向找不到标高</system:String>
+    <system:String x:Key="WouldCreateInvalidBox">将创建无效框</system:String>
+    <system:String x:Key="NoLevelFoundInDirection">在该方向未找到标高</system:String>
+    <system:String x:Key="BoxMovedFormat">框已移动 {0}：顶部到 '{1}'，底部到 '{2}'</system:String>
+    <system:String x:Key="TopMovedFormat">顶部已移动 {0} 到标高 '{1}'</system:String>
+    <system:String x:Key="BottomMovedFormat">底部已移动 {0} 到标高 '{1}'</system:String>
+    <system:String x:Key="NudgedFormat">已微调 {0} {1} {2}</system:String>
+    <system:String x:Key="Expanded">已展开</system:String>
+    <system:String x:Key="Shrunk">已收缩</system:String>
+    <system:String x:Key="ExpandedShrunkByFormat">在所有方向 {0}</system:String>
+    <system:String x:Key="CouldNotDetermineFace">无法确定要移动的面。</system:String>
+    <system:String x:Key="NoGridFoundFormat">在 {0} 方向未找到网格。</system:String>
+    <system:String x:Key="AlreadyAtGridLine">已在网格线上。</system:String>
+    <system:String x:Key="MovedToGridFormat">已移动到网格 '{0}' 在 {1} 方向</system:String>
+    <system:String x:Key="NudgedInDirectionFormat">已在 {1} 方向微调 {0}</system:String>
+    <system:String x:Key="CouldNotGetViewRange">无法获取视图范围信息。</system:String>
+    <system:String x:Key="CouldNotGetCropBox">无法从剖面获取裁剪框。</system:String>
+    <system:String x:Key="NoCropboxOrElements">未找到裁剪框或元素以扩展范围框</system:String>
+    <system:String x:Key="ApplySectionBoxFormat">应用来自视图 '{0}' 的剖面框？</system:String>
+    <system:String x:Key="ConfirmSectionBox">确认剖面框</system:String>
+    <system:String x:Key="SectionBoxAlignedFormat">剖面框已与视图 '{0}' 对齐</system:String>
+    <system:String x:Key="CropBoxAlignedFormat">裁剪框已与视图 '{0}' 对齐</system:String>
+    <system:String x:Key="UnsupportedViewType">不支持的视图类型。</system:String>
+    <system:String x:Key="Activated">已激活</system:String>
+    <system:String x:Key="Deactivated">已停用</system:String>
+    <system:String x:Key="BoxToggleFailed">框切换失败</system:String>
+    <system:String x:Key="Hidden">已隐藏</system:String>
+    <system:String x:Key="Unhidden">已显示</system:String>
+    <system:String x:Key="ErrorInBoxVisibility">框可见性错误</system:String>
+    <system:String x:Key="SectionBoxAlignedToFace">剖面框已与面对齐</system:String>
+    <system:String x:Key="FailedToAlignToFaceFormat">与面对齐失败：{0}</system:String>
+    <system:String x:Key="InvalidSectionBoxDimensions">无效的剖面框尺寸。</system:String>
+    <system:String x:Key="PleaseEnterValidNumber">请输入有效数字</system:String>
+    <system:String x:Key="AnErrorOccurredFormat">发生错误：{0}</system:String>
+    <system:String x:Key="PleaseEnterNudgeAmount">请输入微调量</system:String>
+    <system:String x:Key="AmountMustBeGreaterThanZero">数量必须大于 0</system:String>
+    <system:String x:Key="PleaseEnterValidNumberForExpansion">请输入有效的展开量</system:String>
+    <system:String x:Key="AnErrorOccurredWhileExpandingFormat">展开时发生错误：{0}</system:String>
+    <system:String x:Key="PleaseEnterShrinkAmount">请输入收缩量</system:String>
+    <system:String x:Key="ShrinkAmountMustBeGreaterThanZero">收缩量必须大于 0</system:String>
+    <system:String x:Key="PleaseEnterValidNumberForShrink">请输入有效的收缩量</system:String>
+    <system:String x:Key="AnErrorOccurredWhileShrinkingFormat">收缩时发生错误：{0}</system:String>
+    <system:String x:Key="Select2DViewForSectionBox">选择二维视图用于剖面框</system:String>
+    <system:String x:Key="Select3DViewToCopyFrom">选择要复制的三维视图</system:String>
+    <system:String x:Key="CouldNotExtractViewInformation">无法提取视图信息。</system:String>
+    <system:String x:Key="View3DHasNoSectionBox">三维视图没有剖面框。</system:String>
+    <system:String x:Key="Unknown">未知</system:String>
+    
+    <!-- Alert messages -->
+    <system:String x:Key="StoredSectionBoxFound">找到此视图的已存储剖面框！是否恢复？</system:String>
+    <system:String x:Key="RestoreSectionBox">恢复剖面框</system:String>
+    <system:String x:Key="NoSectionBoxMessage">当前视图没有活动或已存储的剖面框。</system:String>
+    <system:String x:Key="NoSectionBoxTitle">无剖面框</system:String>
+    <system:String x:Key="ErrorTitle">错误</system:String>
 </ResourceDictionary>
