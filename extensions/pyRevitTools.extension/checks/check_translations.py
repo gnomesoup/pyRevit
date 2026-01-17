@@ -110,21 +110,17 @@ class DocstringMeta(type):
                 cls.__doc__ = translated
             # Otherwise keep the original docstring from dct if it exists
         
-        # If class has a name property, also set name as a class attribute (string)
-        # This is needed because PreflightCheck accesses name on the class, not instance
-        # We extract the name key from the docstring key
-        if 'name' in dct and isinstance(dct['name'], property):
-            # Try to find the name translation key from docstring key
-            name_key = None
-            if '_docstring_key' in dct:
-                # Extract check name key from docstring key
-                doc_key = dct['_docstring_key']
-                if doc_key.startswith('CheckDescription_'):
-                    name_key = doc_key.replace('CheckDescription_', 'CheckName_')
-            
-            if name_key:
-                # Set name as a class attribute (string, not property)
-                # This allows getattr to work on the class and return a string
-                translated_name = get_check_translation(name_key)
-                if translated_name != name_key:
-                    cls.name = translated_name
+
+        name_key = None
+        
+        if '_name_key' in dct:
+            name_key = dct['_name_key']
+        elif 'name' in dct and isinstance(dct['name'], property) and '_docstring_key' in dct:
+            doc_key = dct['_docstring_key']
+            if doc_key.startswith('CheckDescription_'):
+                name_key = doc_key.replace('CheckDescription_', 'CheckName_', 1)
+        
+        if name_key:
+            translated_name = get_check_translation(name_key)
+            if translated_name != name_key:
+                cls.name = translated_name
