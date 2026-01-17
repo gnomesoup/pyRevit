@@ -1,0 +1,55 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <system:String x:Key="Title">Навигатор Бокса Сечения</system:String>
+    
+    <system:String x:Key="LevelNavigation">Навигация по Уровням</system:String>
+    <system:String x:Key="TopUp">Верх ↑</system:String>
+    <system:String x:Key="TopDown">Верх ↓</system:String>
+    <system:String x:Key="BottomUp">Низ ↑</system:String>
+    <system:String x:Key="BottomDown">Низ ↓</system:String>
+    <system:String x:Key="BoxUp">Бокс ↑</system:String>
+    <system:String x:Key="BoxDown">Бокс ↓</system:String>
+    <system:String x:Key="Level">Уровень</system:String>
+    <system:String x:Key="Nudge">Сдвиг</system:String>
+    <system:String x:Key="Amount">Величина:</system:String>
+    <system:String x:Key="Loading">Загрузка...</system:String>
+    
+    <system:String x:Key="ViewAlignment">Выравнивание Вида</system:String>
+    <system:String x:Key="Align2DView">Выровнять 2D Вид</system:String>
+    
+    <system:String x:Key="GridNavigation">Навигация по Сетке</system:String>
+    <system:String x:Key="Bigger">Больше</system:String>
+    <system:String x:Key="Smaller">Меньше</system:String>
+    <system:String x:Key="WestOut">← З</system:String>
+    <system:String x:Key="NorthOut">↑ С</system:String>
+    <system:String x:Key="SouthOut">↓ Ю</system:String>
+    <system:String x:Key="EastOut">→ В</system:String>
+    <system:String x:Key="WestIn">→ З</system:String>
+    <system:String x:Key="NorthIn">↓ С</system:String>
+    <system:String x:Key="SouthIn">↑ Ю</system:String>
+    <system:String x:Key="EastIn">← В</system:String>
+    <system:String x:Key="Grid">Сетка</system:String>
+    
+    <system:String x:Key="ExpandShrinkControls">Управление Расширением/Сжатием</system:String>
+    <system:String x:Key="Expand">Расширить +</system:String>
+    <system:String x:Key="Shrink">Сжать -</system:String>
+    
+    <system:String x:Key="Actions">Действия</system:String>
+    <system:String x:Key="ToggleBox">Переключить Бокс</system:String>
+    <system:String x:Key="UnHideBox">(Скрыть/Показать) Бокс</system:String>
+    <system:String x:Key="AlignBox">Выровнять Бокс</system:String>
+    
+    <system:String x:Key="VerticalPositionStatus">Статус Вертикальной Позиции</system:String>
+    <system:String x:Key="Top">Верх:</system:String>
+    <system:String x:Key="Bottom">Низ:</system:String>
+    <system:String x:Key="Position">Позиция:</system:String>
+    
+    <system:String x:Key="GridNavigationStatus">Статус Навигации по Сетке</system:String>
+    <system:String x:Key="ExpandShrinkActionsStatus">Статус Расширения/Сжатия + Действия</system:String>
+    
+    <system:String x:Key="Settings">Настройки</system:String>
+    <system:String x:Key="ShowPreviewOnHover">Показать предпросмотр при наведении</system:String>
+    <system:String x:Key="UpdateUIOnEvents">Обновлять интерфейс при событиях</system:String>
+    <system:String x:Key="IncludeLinkedLevelsAndGrids">Включить Связанные Уровни и Сетки</system:String>
+</ResourceDictionary>
