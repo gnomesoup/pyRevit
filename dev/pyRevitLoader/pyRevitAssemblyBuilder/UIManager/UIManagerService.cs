@@ -24,6 +24,7 @@ namespace pyRevitAssemblyBuilder.UIManager
         private readonly IButtonBuilderFactory _buttonBuilderFactory;
         private readonly IStackBuilder _stackBuilder;
         private readonly IComboBoxBuilder _comboBoxBuilder;
+        private readonly IUIRibbonScanner? _ribbonScanner;
         private readonly UIApplication _uiApp;
         private ParsedExtension? _currentExtension;
 
@@ -43,6 +44,7 @@ namespace pyRevitAssemblyBuilder.UIManager
         /// <param name="buttonBuilderFactory">The button builder factory instance.</param>
         /// <param name="stackBuilder">The stack builder instance.</param>
         /// <param name="comboBoxBuilder">The combo box builder instance.</param>
+        /// <param name="ribbonScanner">Optional ribbon scanner for tracking UI elements.</param>
         public UIManagerService(
             UIApplication uiApp,
             ILogger logger,
@@ -51,7 +53,8 @@ namespace pyRevitAssemblyBuilder.UIManager
             IPanelBuilder panelBuilder,
             IButtonBuilderFactory buttonBuilderFactory,
             IStackBuilder stackBuilder,
-            IComboBoxBuilder comboBoxBuilder)
+            IComboBoxBuilder comboBoxBuilder,
+            IUIRibbonScanner? ribbonScanner = null)
         {
             _uiApp = uiApp ?? throw new ArgumentNullException(nameof(uiApp));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -61,6 +64,7 @@ namespace pyRevitAssemblyBuilder.UIManager
             _buttonBuilderFactory = buttonBuilderFactory ?? throw new ArgumentNullException(nameof(buttonBuilderFactory));
             _stackBuilder = stackBuilder ?? throw new ArgumentNullException(nameof(stackBuilder));
             _comboBoxBuilder = comboBoxBuilder ?? throw new ArgumentNullException(nameof(comboBoxBuilder));
+            _ribbonScanner = ribbonScanner;
         }
 
         /// <summary>
@@ -160,6 +164,9 @@ namespace pyRevitAssemblyBuilder.UIManager
             // Get tab name for children using localized title
             var tabText = ExtensionParser.GetComponentTitle(component);
 
+            // Mark tab as touched in the registry (matching Python's set_dirty_flag behavior)
+            _ribbonScanner?.MarkElementTouched("tab", tabText);
+
             // Recursively build children
             foreach (var child in component.Children ?? Enumerable.Empty<ParsedComponent>())
                 RecursivelyBuildUI(child, component, null, tabText, assemblyInfo);
@@ -169,6 +176,12 @@ namespace pyRevitAssemblyBuilder.UIManager
         {
             // Use PanelBuilder to create the panel
             var panel = _panelBuilder.CreatePanel(component, tabName);
+
+            // Get panel name for registry (using localized title)
+            var panelText = ExtensionParser.GetComponentTitle(component);
+
+            // Mark panel as touched in the registry (matching Python's set_dirty_flag behavior)
+            _ribbonScanner?.MarkElementTouched("panel", panelText, tabName);
 
             // Apply background colors if specified
             _panelBuilder.ApplyPanelBackgroundColors(panel, component, tabName);
@@ -200,6 +213,9 @@ namespace pyRevitAssemblyBuilder.UIManager
             string tabName,
             ExtensionAssemblyInfo assemblyInfo)
         {
+            // Get panel name for button tracking
+            var panelName = parentPanel?.Name ?? "";
+
             switch (component.Type)
             {
                 case CommandComponentType.Separator:
@@ -208,6 +224,11 @@ namespace pyRevitAssemblyBuilder.UIManager
 
                 case CommandComponentType.Stack:
                     _stackBuilder.BuildStack(component, parentPanel!, assemblyInfo);
+                    // Mark all children in the stack as touched
+                    foreach (var child in component.Children ?? Enumerable.Empty<ParsedComponent>())
+                    {
+                        _ribbonScanner?.MarkElementTouched("button", child.DisplayName, panelName);
+                    }
                     break;
 
                 case CommandComponentType.ComboBox:
@@ -215,6 +236,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     {
                         _comboBoxBuilder.CreateComboBox(component, parentPanel!);
                     }
+                    _ribbonScanner?.MarkElementTouched("button", component.DisplayName, panelName);
                     break;
 
                 default:
@@ -225,6 +247,8 @@ namespace pyRevitAssemblyBuilder.UIManager
                         {
                             _buttonBuilderFactory.TryBuild(component, parentPanel!, tabName, assemblyInfo);
                         }
+                        // Mark button as touched (whether created new or existing)
+                        _ribbonScanner?.MarkElementTouched("button", component.DisplayName, panelName);
                     }
                     else
                     {
