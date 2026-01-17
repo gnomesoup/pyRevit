@@ -49,9 +49,11 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
                 return;
             }
 
-            if (ItemExistsInPanel(parentPanel, component.DisplayName))
+            // Check if button already exists - if so, update it instead of creating new
+            var existingBtn = GetExistingButton(parentPanel, component.DisplayName);
+            if (existingBtn != null)
             {
-                Logger.Debug($"Push button '{component.DisplayName}' already exists in panel.");
+                UpdateExistingButton(existingBtn, component);
                 return;
             }
 
@@ -80,6 +82,65 @@ namespace pyRevitAssemblyBuilder.UIManager.Buttons
             catch (Exception ex)
             {
                 Logger.Error($"Failed to create push button '{component.DisplayName}'. Exception: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gets an existing button from the panel by name.
+        /// </summary>
+        private PushButton? GetExistingButton(RibbonPanel panel, string buttonName)
+        {
+            try
+            {
+                var items = panel.GetItems();
+                foreach (var item in items)
+                {
+                    if (item.Name == buttonName && item is PushButton pb)
+                        return pb;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug($"Error getting existing button '{buttonName}': {ex.Message}");
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Updates an existing button's properties (title, icon, tooltip) to match the component.
+        /// Mirrors Python's existing_item.set_title() + existing_item.activate() behavior.
+        /// </summary>
+        private void UpdateExistingButton(PushButton btn, ParsedComponent component)
+        {
+            try
+            {
+                // Update button text (title) - matches Python's existing_item.set_title(ui_title)
+                var buttonText = ButtonPostProcessor.GetButtonText(component);
+                btn.ItemText = buttonText;
+
+                // Re-apply icon, tooltip, and other properties
+                ButtonPostProcessor.Process(btn, component);
+
+                // Activate the button (enable and show) - matches Python's existing_item.activate()
+                btn.Enabled = true;
+                btn.Visible = true;
+
+                // Handle SmartButton-specific initialization on update
+                if (component.Type == CommandComponentType.SmartButton && _smartButtonScriptInitializer != null)
+                {
+                    var shouldActivate = _smartButtonScriptInitializer.ExecuteSelfInit(component, btn);
+                    if (!shouldActivate)
+                    {
+                        btn.Enabled = false;
+                        Logger.Debug($"SmartButton '{component.DisplayName}' deactivated by __selfinit__ during update.");
+                    }
+                }
+
+                Logger.Debug($"Updated existing push button '{component.DisplayName}'.");
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug($"Failed to update push button '{component.DisplayName}': {ex.Message}");
             }
         }
     }

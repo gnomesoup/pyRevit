@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -20,6 +20,7 @@ namespace pyRevitAssemblyBuilder.SessionManager
         private readonly IExtensionManagerService _extensionManager;
         private readonly IHookManager _hookManager;
         private readonly IUIManagerService _uiManager;
+        private readonly IUIRibbonScanner _ribbonScanner;
         private readonly UIApplication _uiApp;
         private readonly ILogger _logger;
         
@@ -42,6 +43,7 @@ namespace pyRevitAssemblyBuilder.SessionManager
         /// <param name="extensionManager">Service for managing extensions.</param>
         /// <param name="hookManager">Service for managing hooks.</param>
         /// <param name="uiManager">Service for building UI elements.</param>
+        /// <param name="ribbonScanner">Service for scanning and cleaning up ribbon elements.</param>
         /// <param name="logger">Logger instance for logging.</param>
         /// <exception cref="ArgumentNullException">Thrown when uiManager is null or does not have a valid UIApplication.</exception>
         public SessionManagerService(
@@ -49,12 +51,14 @@ namespace pyRevitAssemblyBuilder.SessionManager
             IExtensionManagerService extensionManager,
             IHookManager hookManager,
             IUIManagerService uiManager,
+            IUIRibbonScanner ribbonScanner,
             ILogger logger)
         {
             _assemblyBuilder = assemblyBuilder ?? throw new ArgumentNullException(nameof(assemblyBuilder));
             _extensionManager = extensionManager ?? throw new ArgumentNullException(nameof(extensionManager));
             _hookManager = hookManager ?? throw new ArgumentNullException(nameof(hookManager));
             _uiManager = uiManager ?? throw new ArgumentNullException(nameof(uiManager));
+            _ribbonScanner = ribbonScanner ?? throw new ArgumentNullException(nameof(ribbonScanner));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
             // Get UIApplication from UIManagerService via public property
@@ -79,6 +83,24 @@ namespace pyRevitAssemblyBuilder.SessionManager
         {
             var totalStopwatch = Stopwatch.StartNew();
             var stepStopwatch = new Stopwatch();
+            
+            // STEP 1: Reset panel backgrounds before creating new UI
+            // This matches Python's reset_backgrounds() behavior
+            stepStopwatch.Restart();
+            _ribbonScanner?.ResetPanelBackgrounds();
+            _logger.Debug($"[PERF] ResetPanelBackgrounds: {stepStopwatch.ElapsedMilliseconds}ms");
+            
+            // STEP 2: Reset dirty flags on all existing pyRevit UI elements
+            // This marks all existing elements as potentially orphaned
+            stepStopwatch.Restart();
+            _ribbonScanner?.ResetDirtyFlags();
+            _logger.Debug($"[PERF] ResetDirtyFlags: {stepStopwatch.ElapsedMilliseconds}ms");
+            
+            // Clear all caches to ensure newly installed/enabled extensions are discovered
+            // This is critical for reload scenarios where extensions may have been added or toggled
+            stepStopwatch.Restart();
+            _extensionManager?.ClearParserCaches();
+            _logger.Debug($"[PERF] ClearParserCaches: {stepStopwatch.ElapsedMilliseconds}ms");
             
             // Initialize the ScriptExecutor before executing any scripts
             stepStopwatch.Restart();
@@ -139,7 +161,7 @@ namespace pyRevitAssemblyBuilder.SessionManager
                         ExecuteExtensionStartupScript(ext, libraryExtensions);
                         _logger.Debug($"[PERF] {ext.Name} - StartupScript: {stepStopwatch.ElapsedMilliseconds}ms");
                     }
-                    
+
                     stepStopwatch.Restart();
                     _uiManager?.BuildUI(ext, assmInfo);
                     _logger.Debug($"[PERF] {ext.Name} - BuildUI: {stepStopwatch.ElapsedMilliseconds}ms");
@@ -149,6 +171,16 @@ namespace pyRevitAssemblyBuilder.SessionManager
                 {
                     _logger.Error($"Error processing extension '{ext?.Name ?? "unknown"}': {ex.Message}");
                 }
+            }
+            
+            // STEP 3: Cleanup orphaned UI elements (those with dirty=false)
+            // This deactivates tabs/panels that were deleted or disabled since last load
+            // Matching Python's cleanup_pyrevit_ui() behavior
+            if (_ribbonScanner != null)
+            {
+                stepStopwatch.Restart();
+                _ribbonScanner.CleanupOrphanedElements();
+                _logger.Debug($"[PERF] CleanupOrphanedElements: {stepStopwatch.ElapsedMilliseconds}ms");
             }
             
             totalStopwatch.Stop();

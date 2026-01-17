@@ -8,6 +8,8 @@ using Autodesk.Revit.ApplicationServices;
 
 using pyRevitLabs.Common;
 using pyRevitLabs.PyRevit;
+using pyRevitLabs.Json.Linq;
+using pyRevitLabs.NLog;
 
 namespace PyRevitLabs.PyRevit.Runtime {
     public enum ScriptRuntimeType {
@@ -17,6 +19,7 @@ namespace PyRevitLabs.PyRevit.Runtime {
 
     public class ScriptRuntimeConfigs : IDisposable {
         private object _eventSender = null;
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public ControlledApplication ControlledApp { get; set; }
         public Application App { get; set; }
@@ -65,6 +68,8 @@ namespace PyRevitLabs.PyRevit.Runtime {
     }
 
     public class ScriptRuntime : IDisposable {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
         // app handles
         private UIApplication _uiApp = null;
         private Application _app = null;
@@ -148,6 +153,10 @@ namespace PyRevitLabs.PyRevit.Runtime {
         public ScriptEngineType EngineType {
             get {
                 // determine engine necessary to run this script
+                var engineTypeFromConfig = GetEngineTypeFromConfigs();
+                if (engineTypeFromConfig != null)
+                    return engineTypeFromConfig.Value;
+
 
                 if (PyRevitScript.IsType(ScriptSourceFile, PyRevitScriptTypes.Python)) {
                     string firstLine = "";
@@ -200,6 +209,35 @@ namespace PyRevitLabs.PyRevit.Runtime {
                 // ScriptSourceFile with be "" and runtime can not determine
                 // the engine type
                 return ScriptEngineType.Unknown;
+            }
+        }
+
+        private ScriptEngineType? GetEngineTypeFromConfigs() {
+            // Parse engine configs JSON to extract explicit engine type
+            // Format: {"type":"CPython",...} or {"type":"IronPython",...}
+            try {
+                if (string.IsNullOrEmpty(ScriptRuntimeConfigs?.EngineConfigs))
+                    return null;
+
+                // Parse JSON using pyRevitLabs.Json (Newtonsoft.Json fork)
+                var json = JObject.Parse(ScriptRuntimeConfigs.EngineConfigs);
+                var engineTypeName = json["type"]?.Value<string>();
+
+                if (string.IsNullOrEmpty(engineTypeName))
+                    return null;
+
+                // Map string to ScriptEngineType enum
+                if (engineTypeName.Equals("CPython", StringComparison.OrdinalIgnoreCase)) 
+                    return ScriptEngineType.CPython;
+
+                if (engineTypeName.Equals("IronPython", StringComparison.OrdinalIgnoreCase))
+                    return ScriptEngineType.IronPython;
+
+                return null;
+            }
+            catch (Exception ex) {
+                logger.Error(ex, "Failed to parse engine configs JSON: {0}", ScriptRuntimeConfigs.EngineConfigs);
+                return null;
             }
         }
 

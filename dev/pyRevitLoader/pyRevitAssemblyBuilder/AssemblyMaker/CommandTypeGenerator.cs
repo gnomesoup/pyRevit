@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Autodesk.Revit.Attributes;
 using pyRevitExtensionParser;
@@ -16,6 +17,39 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
     /// </summary>
     public class RoslynCommandTypeGenerator
     {
+        // Cache the pyRevit root derived from DLL location
+        // Uses marker-based detection (pyRevitfile or pyrevitlib directory)
+        // for robustness against directory structure changes.
+        private static readonly string _pyRevitRoot = GetPyRevitRoot();
+        
+        /// <summary>
+        /// Finds the pyRevit root directory by searching upward for marker files/directories.
+        /// Falls back to the original 4-level traversal if markers are not found.
+        /// </summary>
+        private static string GetPyRevitRoot()
+        {
+            var currentDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            // Search upward for pyRevit root using established markers
+            while (!string.IsNullOrEmpty(currentDir))
+            {
+                var markerPath = Path.Combine(currentDir, Constants.PYREVIT_MARKER_FILE);
+                var libDirPath = Path.Combine(currentDir, Constants.PYREVIT_LIB_DIR);
+                
+                if (File.Exists(markerPath) || Directory.Exists(libDirPath))
+                    return currentDir;
+                
+                // Move to parent directory
+                var parentDir = Path.GetDirectoryName(currentDir);
+                if (parentDir == currentDir)
+                    break; // Reached filesystem root
+                currentDir = parentDir;
+            }
+            
+            // Fallback to hardcoded traversal if markers not found
+            var dllDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            return Path.GetFullPath(Path.Combine(dllDir, "..", "..", "..", ".."));
+        }
+        
         public string GenerateExtensionCode(ParsedExtension extension, string revitVersion, IEnumerable<ParsedExtension> libraryExtensions = null)
         {
             var sb = new StringBuilder();
@@ -60,8 +94,15 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
                     }
                 }
                 
-                searchPathsList.Add(Path.Combine(extension.Directory, "..", "..", "pyrevitlib"));
-                searchPathsList.Add(Path.Combine(extension.Directory, "..", "..", "site-packages"));
+                // Add pyrevitlib/ and site-packages/ paths if pyRevitRoot is valid
+                if (!string.IsNullOrEmpty(_pyRevitRoot))
+                {
+                    var pyRevitLibDir = Path.Combine(_pyRevitRoot, Constants.PYREVIT_LIB_DIR);
+                    searchPathsList.Add(pyRevitLibDir);
+
+                    var sitePackagesDir = Path.Combine(_pyRevitRoot, Constants.SITE_PACKAGES_DIR);
+                    searchPathsList.Add(sitePackagesDir);
+                }
                 
                 string searchPaths = string.Join(";", searchPathsList);
                 string tooltip = cmd.Tooltip ?? string.Empty;
@@ -99,7 +140,7 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
                 sb.AppendLine($"        \"{Escape(extName)}\",");
                 sb.AppendLine($"        \"{cmd.UniqueId}\",");
                 sb.AppendLine($"        \"{Escape(ctrlId)}\",");
-                sb.AppendLine($"        \"{context}\",");
+                sb.AppendLine($"        \"{Escape(context)}\",");
                 sb.AppendLine($"        \"{Escape(engineCfgs)}\"");
                 sb.AppendLine("    )");
                 sb.AppendLine("    {");
@@ -112,7 +153,7 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
                 {
                     sb.AppendLine($"public class {safeClassName}_avail : ScriptCommandExtendedAvail");
                     sb.AppendLine("{");
-                    sb.AppendLine($"    public {safeClassName}_avail() : base(\"{context}\")");
+                    sb.AppendLine($"    public {safeClassName}_avail() : base(\"{Escape(context)}\")");
                     sb.AppendLine("    {");
                     sb.AppendLine("    }");
                     sb.AppendLine("}");
@@ -175,6 +216,10 @@ namespace pyRevitAssemblyBuilder.AssemblyMaker
             
             // Core engine settings (apply to all script types)
             configs["clean"] = cmd.Engine?.Clean ?? false;
+            
+            // Add engine type if specified (CPython, IronPython, etc.)
+            if (!string.IsNullOrEmpty(cmd.Engine?.Type))
+                configs["type"] = cmd.Engine.Type;
             
             if (isDynamoScript)
             {
