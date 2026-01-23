@@ -1100,10 +1100,8 @@ class PrintSheetsWindow(forms.WPFWindow):
         PrintUtils.ensure_dir(dirPath)
         doc = self.selected_doc
 
-        if IS_REVIT_2022_OR_NEWER or self.export_dwg.IsChecked:
+        if self.selected_printer =="Revit Internal Printer" or self.export_dwg.IsChecked:
             PrintUtils.open_dir(dirPath)
-        else:
-            return
 
 
         with revit.Transaction('Reload Keynote File',
@@ -1229,10 +1227,8 @@ class PrintSheetsWindow(forms.WPFWindow):
         PrintUtils.ensure_dir(dirPath)
         doc = target_doc
 
-        if IS_REVIT_2022_OR_NEWER:
+        if self.selected_printer =="Revit Internal Printer":
             PrintUtils.open_dir(dirPath)
-        else:
-            return
 
         if target_sheets:
             with forms.ProgressBar(step=1, title='Exporting Linked PDFs... ' + '{value} of {max_value}', cancellable=True) as pb1:
@@ -1664,7 +1660,6 @@ class PrintSheetsWindow(forms.WPFWindow):
             script.clipboard_copy('\n'.join(filenames))
 
     def print_sheets(self, sender, args):
-        self.save_current_settings()
         if self.sheet_list:
             selected_only = False
             if self.selected_sheets:
