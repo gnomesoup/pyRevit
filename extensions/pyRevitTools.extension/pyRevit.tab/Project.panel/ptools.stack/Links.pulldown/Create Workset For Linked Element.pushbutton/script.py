@@ -44,7 +44,6 @@ def main():
             alert(
                 "The script cannot run in a document without worksharing.",
                 title="The script has stopped",
-                warn_icon=False,
                 exitscript=True
             )
         
