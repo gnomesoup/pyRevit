@@ -2,10 +2,89 @@
 from pyrevit import revit, DB
 from pyrevit import script
 from pyrevit.forms import alert
+from pyrevit.userconfig import user_config
 from pyrevit import HOST_APP
 
 doc = HOST_APP.doc
 logger = script.get_logger()
+
+pyrevit_locale = user_config.user_locale  # type: str
+# Translation dictionaries
+translations = {
+    "en_us": {
+        "enable_worksharing": "The document doesn't have worksharing enabled.\nEnable it?",
+        "enable_worksharing_options": (
+            "Yes",
+            "No"
+        ),
+        "enable_worksharing_no": "The script cannot run in a document without worksharing.",
+        "enable_worksharing_no_title": "The script has stopped",
+        "transaction_name": "Create Workset(s) for linked model(s)",
+        "set_all_no_links": "No links found in the document.",
+        "set_all_select_at_least_one": "At least one linked element must be selected.",
+    },
+    "fr_fr": {
+        "enable_worksharing": "Le partage de projet n'est pas activé pour ce document.\nL'activer ?",
+        "enable_worksharing_options": (
+            "Oui",
+            "Non"
+        ),
+        "enable_worksharing_no": "Le script ne peut pas s'exécuter dans un document sans partage de projet.",
+        "enable_worksharing_no_title": "Le script s'est arrêté",
+        "transaction_name": "Créer des sous-projets pour les modèles liés",
+        "set_all_no_links": "Aucun lien trouvé dans le document.",
+        "set_all_select_at_least_one": "Au moins un élément lié doit être sélectionné.",
+    },
+    "ru": {
+        "enable_worksharing": "Документ без совместной работы.\nВключить её?",
+        "enable_worksharing_options": (
+            "Да",
+            "Нет"
+        ),
+        "enable_worksharing_no": "Скрипт не может работать в документе без совместной работы.",
+        "enable_worksharing_no_title": "Скрипт остановлен",
+        "transaction_name": "Создание рабочих наборов для связанных моделей",
+        "set_all_no_links": "В документе нет связанных файлов.",
+        "set_all_select_at_least_one": "Необходимо выбрать хотя бы один элемент связи.",
+    },
+    "chinese_s": {
+        "enable_worksharing": "文档未启用工作共享。\n要启用它吗？",
+        "enable_worksharing_options": (
+            "是",
+            "否"
+        ),
+        "enable_worksharing_no": "该脚本无法在没有工作共享的文档中运行。",
+        "enable_worksharing_no_title": "脚本已停止",
+        "transaction_name": "为链接模型创建工作集",
+        "set_all_no_links": "在文档中找不到链接。",
+        "set_all_select_at_least_one": "必须至少选择一个链接元素。",
+    },
+    "es_es": {
+        "enable_worksharing": "El documento no tiene activada la compartición de proyecto.\n¿Activarla?",
+        "enable_worksharing_options": (
+            "Sí",
+            "No"
+        ),
+        "enable_worksharing_no": "El script no puede ejecutarse en un documento sin compartición de proyecto.",
+        "enable_worksharing_no_title": "El script se ha detenido",
+        "transaction_name": "Crear subproyectos para modelos vinculados",
+        "set_all_no_links": "No se encontraron vínculos en el documento.",
+        "set_all_select_at_least_one": "Se debe seleccionar al menos un elemento vinculado.",
+    },
+    "de_de": {
+        "enable_worksharing": "Die Bearbeitungsbereiche sind für das Dokument nicht aktiviert.\nAktivieren?",
+        "enable_worksharing_options": (
+            "Ja",
+            "Nein"
+        ),
+        "enable_worksharing_no": "Das Skript kann nicht in einem Dokument ohne Bearbeitungsbereiche ausgeführt werden.",
+        "enable_worksharing_no_title": "Das Skript wurde angehalten",
+        "transaction_name": "Bearbeitungsbereiche für verknüpfte Modelle erstellen",
+        "set_all_no_links": "Keine Verknüpfungen im Dokument gefunden.",
+        "set_all_select_at_least_one": "Es muss mindestens ein verknüpftes Element ausgewählt werden.",
+    },
+}  # type: dict[str, dict[str, str | tuple]]
+translations_dict = translations.get(pyrevit_locale, translations["en_us"])
 
 
 def main():
@@ -32,22 +111,26 @@ def main():
 
     if len(selection) > 0:
         enable_worksharing = alert(
-            "The document doesn't have worksharing enabled. Enable it?",
-            options=["Yes", "No"],
+            translations_dict["enable_worksharing"],
+            options=translations_dict["enable_worksharing_options"],
             warn_icon=False
         )  # type: str
         if not enable_worksharing:
             script.exit()
-        if enable_worksharing == "Yes" and not doc.IsWorkshared and doc.CanEnableWorksharing:
+        if (
+            enable_worksharing == translations_dict["enable_worksharing_options"][0]
+            and not doc.IsWorkshared
+            and doc.CanEnableWorksharing
+        ):
             doc.EnableWorksharing("Shared Levels and Grids", "Workset1")
         else:
             alert(
-                "The script cannot run in a document without worksharing.",
-                title="The script has stopped",
+                translations_dict["enable_worksharing_no"],
+                title=translations_dict["enable_worksharing_no_title"],
                 exitscript=True
             )
         
-        with revit.Transaction("Create Workset(s) for linked model(s)"):
+        with revit.Transaction(translations_dict["transaction_name"]):
             for el in selection:
                 linked_model_name = ""
                 if isinstance(el, DB.RevitLinkInstance):
@@ -120,9 +203,9 @@ def main():
                         )
     else:
         if set_all:
-            alert("No links found in the document.")
+            alert(translations_dict["set_all_no_links"])
         else:
-            alert("At least one linked element must be selected.")
+            alert(translations_dict["set_all_select_at_least_one"])
 
 
 if __name__ == "__main__":
