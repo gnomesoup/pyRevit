@@ -1,89 +1,27 @@
 # -*- coding: UTF-8 -*-
+import io
+import json
+import os
 from pyrevit import revit, DB
 from pyrevit import script
 from pyrevit.forms import alert
 from pyrevit.userconfig import user_config
 from pyrevit import HOST_APP
 
+
+def get_translations(script_folder, script_type):
+    # type: (str, str) -> dict[str, dict[str, str | list]]
+    """Loads translations for a specific script type from a JSON file."""
+    json_path = os.path.join(script_folder, 'translations.json')
+    with io.open(json_path, 'r', encoding='utf-8') as file:
+        all_translations = json.load(file)
+    return all_translations[script_type]
+
+
 doc = HOST_APP.doc
 logger = script.get_logger()
-
 pyrevit_locale = user_config.user_locale  # type: str
-# Translation dictionaries
-translations = {
-    "en_us": {
-        "enable_worksharing": "The document doesn't have worksharing enabled.\nEnable it?",
-        "enable_worksharing_options": (
-            "Yes",
-            "No"
-        ),
-        "enable_worksharing_no": "The script cannot run in a document without worksharing.",
-        "enable_worksharing_no_title": "The script has stopped",
-        "transaction_name": "Create Workset(s) for linked model(s)",
-        "set_all_no_links": "No links found in the document.",
-        "set_all_select_at_least_one": "At least one linked element must be selected.",
-    },
-    "fr_fr": {
-        "enable_worksharing": "Le partage de projet n'est pas activé pour ce document.\nL'activer ?",
-        "enable_worksharing_options": (
-            "Oui",
-            "Non"
-        ),
-        "enable_worksharing_no": "Le script ne peut pas s'exécuter dans un document sans partage de projet.",
-        "enable_worksharing_no_title": "Le script s'est arrêté",
-        "transaction_name": "Créer des sous-projets pour les modèles liés",
-        "set_all_no_links": "Aucun lien trouvé dans le document.",
-        "set_all_select_at_least_one": "Au moins un élément lié doit être sélectionné.",
-    },
-    "ru": {
-        "enable_worksharing": "Документ без совместной работы.\nВключить её?",
-        "enable_worksharing_options": (
-            "Да",
-            "Нет"
-        ),
-        "enable_worksharing_no": "Скрипт не может работать в документе без совместной работы.",
-        "enable_worksharing_no_title": "Скрипт остановлен",
-        "transaction_name": "Создание рабочих наборов для связанных моделей",
-        "set_all_no_links": "В документе нет связанных файлов.",
-        "set_all_select_at_least_one": "Необходимо выбрать хотя бы один элемент связи.",
-    },
-    "chinese_s": {
-        "enable_worksharing": "文档未启用工作共享。\n要启用它吗？",
-        "enable_worksharing_options": (
-            "是",
-            "否"
-        ),
-        "enable_worksharing_no": "该脚本无法在没有工作共享的文档中运行。",
-        "enable_worksharing_no_title": "脚本已停止",
-        "transaction_name": "为链接模型创建工作集",
-        "set_all_no_links": "在文档中找不到链接。",
-        "set_all_select_at_least_one": "必须至少选择一个链接元素。",
-    },
-    "es_es": {
-        "enable_worksharing": "El documento no tiene activada la compartición de proyecto.\n¿Activarla?",
-        "enable_worksharing_options": (
-            "Sí",
-            "No"
-        ),
-        "enable_worksharing_no": "El script no puede ejecutarse en un documento sin compartición de proyecto.",
-        "enable_worksharing_no_title": "El script se ha detenido",
-        "transaction_name": "Crear subproyectos para modelos vinculados",
-        "set_all_no_links": "No se encontraron vínculos en el documento.",
-        "set_all_select_at_least_one": "Se debe seleccionar al menos un elemento vinculado.",
-    },
-    "de_de": {
-        "enable_worksharing": "Die Bearbeitungsbereiche sind für das Dokument nicht aktiviert.\nAktivieren?",
-        "enable_worksharing_options": (
-            "Ja",
-            "Nein"
-        ),
-        "enable_worksharing_no": "Das Skript kann nicht in einem Dokument ohne Bearbeitungsbereiche ausgeführt werden.",
-        "enable_worksharing_no_title": "Das Skript wurde angehalten",
-        "transaction_name": "Bearbeitungsbereiche für verknüpfte Modelle erstellen",
-        "set_all_no_links": "Keine Verknüpfungen im Dokument gefunden.",
-        "set_all_select_at_least_one": "Es muss mindestens ein verknüpftes Element ausgewählt werden.",
-    },
-}  # type: dict[str, dict[str, str | tuple]]
+translations = get_translations(script.get_script_path(), "script")
 translations_dict = translations.get(pyrevit_locale, translations["en_us"])
 
 
