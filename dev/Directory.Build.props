@@ -22,6 +22,53 @@
     <Company>pyRevitLabs.io</Company>
   </PropertyGroup>
 
+  <!-- Define REVIT version constants based on RevitVersion -->
+  <PropertyGroup Condition="'$(RevitVersion)' == '2013'">
+    <DefineConstants>$(DefineConstants);REVIT2013</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2014'">
+    <DefineConstants>$(DefineConstants);REVIT2014</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2015'">
+    <DefineConstants>$(DefineConstants);REVIT2015</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2016'">
+    <DefineConstants>$(DefineConstants);REVIT2016</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2017'">
+    <DefineConstants>$(DefineConstants);REVIT2017</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2018'">
+    <DefineConstants>$(DefineConstants);REVIT2018</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2019'">
+    <DefineConstants>$(DefineConstants);REVIT2019</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2020'">
+    <DefineConstants>$(DefineConstants);REVIT2020</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2021'">
+    <DefineConstants>$(DefineConstants);REVIT2021;REVIT2021_OR_GREATER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2022'">
+    <DefineConstants>$(DefineConstants);REVIT2022;REVIT2021_OR_GREATER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2023'">
+    <DefineConstants>$(DefineConstants);REVIT2023;REVIT2021_OR_GREATER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2024'">
+    <DefineConstants>$(DefineConstants);REVIT2024;REVIT2021_OR_GREATER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2025'">
+    <DefineConstants>$(DefineConstants);REVIT2025;REVIT2021_OR_GREATER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2026'">
+    <DefineConstants>$(DefineConstants);REVIT2026;REVIT2021_OR_GREATER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2027'">
+    <DefineConstants>$(DefineConstants);REVIT2027;REVIT2021_OR_GREATER</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(UseRevit)' == 'true'">
     <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="$(RevitVersion).*" />
     <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="$(RevitVersion).*" />
