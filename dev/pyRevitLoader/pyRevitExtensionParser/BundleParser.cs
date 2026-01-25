@@ -352,34 +352,13 @@ namespace pyRevitExtensionParser
                 case "hyperlink":
                     parsed.Hyperlink = StripQuotes(value);
                     break;
-                case "helpurl":
-                    // Handle simple helpurl or multiline indicators
-                    if (value == "|-")
-                    {
-                        state.IsInMultilineValue = true;
-                        state.IsLiteralMultiline = true;
-                        state.CurrentLanguageKey = "_helpurl_";
-                    }
-                    else if (value == ">-")
-                    {
-                        state.IsInMultilineValue = true;
-                        state.IsFoldedMultiline = true;
-                        state.CurrentLanguageKey = "_helpurl_";
-                    }
-                    else if (value == "|" || value == ">")
-                    {
-                        state.IsInMultilineValue = true;
-                        state.CurrentLanguageKey = "_helpurl_";
-                    }
-                    else if (!string.IsNullOrEmpty(value))
+                case "help_url":
+                    if (!string.IsNullOrEmpty(value))
                     {
                         parsed.HelpUrl = StripQuotes(value);
                     }
                     break;
-                case "helpurls":
-                    // helpurls is a dictionary of localized help URLs
-                    // Set up the section, but don't process value - nested content follows
-                    break;
+
                 case "highlight":
                     parsed.Highlight = value?.ToLowerInvariant();
                     break;
@@ -543,10 +522,10 @@ namespace pyRevitExtensionParser
                 return;
             }
 
-            // Localized titles/tooltips/helpurls
+            // Localized titles/tooltips/help_url
             if ((state.CurrentSection == "title" || state.CurrentSection == "titles" ||
                  state.CurrentSection == "tooltip" || state.CurrentSection == "tooltips" ||
-                 state.CurrentSection == "helpurl" || state.CurrentSection == "helpurls") && line.Contains(":"))
+                 state.CurrentSection == "help_url") && line.Contains(":"))
             {
                 ParseLocalizedText(line, parsed, state);
                 return;
@@ -753,7 +732,7 @@ namespace pyRevitExtensionParser
                     parsed.Titles[state.CurrentLanguageKey] = value;
                 else if (state.CurrentSection == "tooltip" || state.CurrentSection == "tooltips")
                     parsed.Tooltips[state.CurrentLanguageKey] = value;
-                else if (state.CurrentSection == "helpurl" || state.CurrentSection == "helpurls")
+                else if (state.CurrentSection == "help_url")
                     parsed.HelpUrls[state.CurrentLanguageKey] = value;
             }
             else
@@ -951,17 +930,14 @@ namespace pyRevitExtensionParser
                 parsed.Tooltips[state.CurrentLanguageKey] = processedValue;
             else if (state.CurrentSection == "author")
                 parsed.Author = processedValue;
-            else if (state.CurrentSection == "helpurl" || state.CurrentSection == "helpurls")
+            else if (state.CurrentSection == "help_url")
             {
-                // Handle both simple helpurl and localized helpurls
-                if (state.CurrentLanguageKey == "_helpurl_")
+                if (state.CurrentLanguageKey == "_help_url_")
                 {
-                    // Simple helpurl multiline - store as default HelpUrl
                     parsed.HelpUrl = processedValue;
                 }
                 else
                 {
-                    // Localized helpurl - store in HelpUrls dictionary
                     parsed.HelpUrls[state.CurrentLanguageKey] = processedValue;
                 }
             }
