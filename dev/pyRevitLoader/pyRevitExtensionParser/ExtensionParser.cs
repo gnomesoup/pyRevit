@@ -401,26 +401,12 @@ namespace pyRevitExtensionParser
                 roots.Add(thirdPartyExtensionsPath);
             }
 
-            var configPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "pyRevit",
-                "pyRevit_config.ini");
-
-            if (FileExists(configPath))
+            var userExtensions = GetConfig().UserExtensionsList;
+            foreach (var extPath in userExtensions)
             {
-                foreach (var line in File.ReadAllLines(configPath))
-                {
-                    if (line.StartsWith("userextensions =", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var parts = line.Substring("userextensions =".Length).Split(';');
-                        foreach (var part in parts)
-                        {
-                            var path = part.Trim();
-                            if (!string.IsNullOrWhiteSpace(path))
-                                roots.Add(path);
-                        }
-                    }
-                }
+                var normalizedPath = Path.GetFullPath(extPath);
+                if (Directory.Exists(normalizedPath))
+                    roots.Add(normalizedPath);
             }
 
             return roots;
