@@ -72,7 +72,7 @@ namespace pyRevitLabs.TargetApps.Revit {
                         "Addins",
                         revitYear.ToString()
                     );
-                    logger.Debug("Revit {0} not found in registry, using default path: {1}", revitYear, defaultPath);
+                    logger.Debug("Revit {0} install location not available in registry; using default path: {1}", revitYear, defaultPath);
                     return defaultPath;
                 }
             }
@@ -142,22 +142,21 @@ namespace pyRevitLabs.TargetApps.Revit {
             // Helper method to search for manifest in a given path
             RevitAddonManifest SearchManifestInPath(string searchPath) {
                 if (CommonUtils.VerifyPath(searchPath)) {
-                    foreach (string file in Directory.GetFiles(searchPath)) {
-                        if (file.ToLower().EndsWith(".addin")) {
-                            try {
-                                logger.Debug(string.Format("Reading Revit \"{0}\" manifest file \"{1}\"",
-                                                           revitYear, file));
-                                var revitManifest = new RevitAddonManifest(file);
-                                if (revitManifest.Name.ToLower() == addinName.ToLower())
-                                    return revitManifest;
-                            }
-                            catch (Exception ex) {
-                                logger.Debug(string.Format("Not pyRevit \"{0}\" manifest file \"{1}\" | {2}",
-                                        revitYear,
-                                        file,
-                                        ex.Message)
-                                    );
-                            }
+                    foreach (string file in Directory.GetFiles(searchPath)
+                                                     .Where(f => f.EndsWith(".addin", StringComparison.OrdinalIgnoreCase))) {
+                        try {
+                            logger.Debug(string.Format("Reading Revit \"{0}\" manifest file \"{1}\"",
+                                                       revitYear, file));
+                            var revitManifest = new RevitAddonManifest(file);
+                            if (revitManifest.Name.ToLower() == addinName.ToLower())
+                                return revitManifest;
+                        }
+                        catch (Exception ex) {
+                            logger.Debug(string.Format("Not pyRevit \"{0}\" manifest file \"{1}\" | {2}",
+                                    revitYear,
+                                    file,
+                                    ex.Message)
+                                );
                         }
                     }
                 }
