@@ -675,6 +675,7 @@ namespace pyRevitExtensionParser
                 string scriptContext = null, scriptHelpUrl = null, scriptHighlight = null;
                 Dictionary<string, string> scriptLocalizedTitles = null;
                 Dictionary<string, string> scriptLocalizedTooltips = null;
+                Dictionary<string, string> scriptLocalizedHelpUrls = null;
                 
                 if (scriptPath != null && scriptPath.EndsWith(".py", StringComparison.OrdinalIgnoreCase))
                 {
@@ -686,6 +687,7 @@ namespace pyRevitExtensionParser
                     scriptLocalizedTooltips = scriptConstants.LocalizedTooltips;
                     scriptContext = scriptConstants.Context;
                     scriptHelpUrl = scriptConstants.HelpUrl;
+                    scriptLocalizedHelpUrls = scriptConstants.LocalizedHelpUrls;
                     scriptHighlight = scriptConstants.Highlight;
                 }
 
@@ -709,6 +711,7 @@ namespace pyRevitExtensionParser
                 // Merge localized values: bundle takes precedence over script
                 var finalLocalizedTitles = scriptLocalizedTitles ?? new Dictionary<string, string>();
                 var finalLocalizedTooltips = scriptLocalizedTooltips ?? new Dictionary<string, string>();
+                var finalLocalizedHelpUrls = scriptLocalizedHelpUrls ?? new Dictionary<string, string>();
                 
                 // If bundle has localized values, they override script values
                 if (bundleInComponent?.Titles != null)
@@ -724,6 +727,14 @@ namespace pyRevitExtensionParser
                     foreach (var kvp in bundleInComponent.Tooltips)
                     {
                         finalLocalizedTooltips[kvp.Key] = kvp.Value;
+                    }
+                }
+                
+                if (bundleInComponent?.HelpUrls != null)
+                {
+                    foreach (var kvp in bundleInComponent.HelpUrls)
+                    {
+                        finalLocalizedHelpUrls[kvp.Key] = kvp.Value;
                     }
                 }
 
@@ -767,6 +778,11 @@ namespace pyRevitExtensionParser
                     ? bundleInComponent.Highlight 
                     : scriptHighlight;
 
+                // Determine final help URL: bundle helpurl takes precedence over script helpurl
+                string finalHelpUrl = !string.IsNullOrEmpty(bundleInComponent?.HelpUrl)
+                    ? bundleInComponent.HelpUrl
+                    : scriptHelpUrl;
+
                 // Determine final help URL: bundle hyperlink takes precedence over script helpurl
                 string finalHyperlink = !string.IsNullOrEmpty(hyperlink) ? hyperlink : scriptHelpUrl;
 
@@ -787,6 +803,7 @@ namespace pyRevitExtensionParser
                     Author = author,
                     Context = finalContext,
                     Hyperlink = finalHyperlink,
+                    HelpUrl = finalHelpUrl,
                     Highlight = finalHighlight,
                     PanelBackground = bundleInComponent?.PanelBackground,
                     TitleBackground = bundleInComponent?.TitleBackground,
@@ -798,6 +815,7 @@ namespace pyRevitExtensionParser
                     Modules = bundleInComponent?.Modules ?? new List<string>(),
                     LocalizedTitles = finalLocalizedTitles.Count > 0 ? finalLocalizedTitles : null,
                     LocalizedTooltips = finalLocalizedTooltips.Count > 0 ? finalLocalizedTooltips : null,
+                    LocalizedHelpUrls = finalLocalizedHelpUrls.Count > 0 ? finalLocalizedHelpUrls : null,
                     Directory = dir,
                     Engine = bundleInComponent?.Engine,
                     Members = bundleInComponent?.Members ?? new List<ComboBoxMember>(),
@@ -946,6 +964,7 @@ namespace pyRevitExtensionParser
             public string Doc;
             public Dictionary<string, string> LocalizedTooltips;
             public string HelpUrl;
+            public Dictionary<string, string> LocalizedHelpUrls;
             public string Context;
             public List<string> ContextItems;
             public string Highlight;
@@ -1016,7 +1035,18 @@ namespace pyRevitExtensionParser
                 }
                 else if (trimmedLine.StartsWith("__helpurl__"))
                 {
-                    result.HelpUrl = ExtractPythonConstantValue(trimmedLine);
+                    // Check if it's a dictionary for multi-language help URL
+                    var dictValue = ExtractPythonDictionary(trimmedLine);
+                    if (dictValue != null)
+                    {
+                        result.LocalizedHelpUrls = dictValue;
+                        // Get default locale value for backward compatibility
+                        result.HelpUrl = GetLocalizedValue(result.LocalizedHelpUrls);
+                    }
+                    else
+                    {
+                        result.HelpUrl = ExtractPythonConstantValue(trimmedLine);
+                    }
                 }
                 else if (trimmedLine.StartsWith("__context__"))
                 {

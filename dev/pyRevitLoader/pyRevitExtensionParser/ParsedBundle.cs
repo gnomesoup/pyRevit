@@ -283,6 +283,42 @@ namespace pyRevitExtensionParser
         public string Hyperlink { get; set; }
 
         /// <summary>
+        /// Gets or sets the help URL for F1 help support.
+        /// </summary>
+        /// <remarks>
+        /// <para>When specified, pressing F1 while hovering over the button will open this URL
+        /// in the default browser. This provides contextual help for the command.</para>
+        /// <para>Supports localization through the HelpUrls dictionary. If a localized help URL
+        /// is available for the current Revit language, it will be used instead.</para>
+        /// <para>Revit will show a tip at the bottom of the tooltip indicating F1 help is available.</para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// helpurl: "https://docs.example.com/my-command"
+        /// </code>
+        /// </example>
+        public string HelpUrl { get; set; }
+
+        /// <summary>
+        /// Gets or sets the localized help URLs for this bundle, keyed by language code.
+        /// </summary>
+        /// <remarks>
+        /// <para>Language codes should follow ISO format (e.g., "en_us", "de_de", "fr_fr").</para>
+        /// <para>If a specific language is not found, pyRevit falls back to the default HelpUrl.</para>
+        /// <para>When this dictionary is provided and contains a value for the current Revit language,
+        /// that localized URL will be used instead of the default HelpUrl.</para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// helpurls:
+        ///   en_us: "https://docs.example.com/my-command"
+        ///   de_de: "https://docs.example.com/de/my-command"
+        ///   chinese_s: "https://docs.example.com/cn/my-command"
+        /// </code>
+        /// </example>
+        public Dictionary<string, string> HelpUrls { get; set; } = new Dictionary<string, string>();
+
+        /// <summary>
         /// Gets or sets the highlight color for this bundle's button.
         /// </summary>
         /// <remarks>
