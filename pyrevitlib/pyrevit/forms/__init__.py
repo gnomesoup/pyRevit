@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """Reusable WPF forms for pyRevit.
 
 Examples:
@@ -662,13 +663,14 @@ class TemplateUserInputWindow(WPFWindow):
     """
 
     xaml_source = "BaseWindow.xaml"
+    default_title_key = "pyRevit.DefaultWindowTitle"
 
     def __init__(self, context, title, width, height, **kwargs):
         """Initialize user input window."""
         WPFWindow.__init__(
             self, op.join(XAML_FILES_DIR, self.xaml_source), handle_esc=True
         )
-        self.Title = title or "pyRevit"
+        self.Title = title or self.get_locale_string(self.default_title_key) or "pyRevit"
         self.Width = width
         self.Height = height
 
@@ -694,7 +696,7 @@ class TemplateUserInputWindow(WPFWindow):
     def show(
         cls,
         context,  # pylint: disable=W0221
-        title="User Input",
+        title=None,
         width=DEFAULT_INPUTWINDOW_WIDTH,
         height=DEFAULT_INPUTWINDOW_HEIGHT,
         **kwargs
@@ -878,6 +880,7 @@ class SelectFromList(TemplateUserInputWindow):
     in_check = False
     in_uncheck = False
     xaml_source = "SelectFromList.xaml"
+    default_title_key = "SelectFromList.DefaultTitle"
 
     @property
     def use_regex(self):
@@ -886,9 +889,12 @@ class SelectFromList(TemplateUserInputWindow):
 
     def _setup(self, **kwargs):
         # custom button name?
-        button_name = kwargs.get("button_name", "Select")
+        button_name = kwargs.get("button_name", None)
         if button_name:
             self.select_b.Content = button_name
+        else:
+            # Use localized default
+            self.select_b.Content = self.get_locale_string("SelectFromList.Select.Button")
 
         # attribute to use as name?
         self._nameattr = kwargs.get("name_attr", None)
@@ -918,7 +924,10 @@ class SelectFromList(TemplateUserInputWindow):
             self.show_element(self.reset_b)
 
         # context group title?
-        self.ctx_groups_title = kwargs.get("group_selector_title", "List Group")
+        self.ctx_groups_title = kwargs.get(
+            "group_selector_title", 
+            self.get_locale_string("SelectFromList.GroupSelector.Label")  # Localized default
+        )
         self.ctx_groups_title_tb.Text = self.ctx_groups_title
 
         self.ctx_groups_active = kwargs.get("default_group", None)
@@ -1036,9 +1045,9 @@ class SelectFromList(TemplateUserInputWindow):
 
     def _list_options(self, option_filter=None):
         if option_filter:
-            self.checkall_b.Content = "Check"
-            self.uncheckall_b.Content = "Uncheck"
-            self.toggleall_b.Content = "Toggle"
+            self.checkall_b.Content = self.get_locale_string("SelectFromList.Check.Button")
+            self.uncheckall_b.Content = self.get_locale_string("SelectFromList.Uncheck.Button")
+            self.toggleall_b.Content = self.get_locale_string("SelectFromList.Toggle.Button")
             # get a match score for every item and sort high to low
             fuzzy_matches = sorted(
                 [
@@ -1060,9 +1069,9 @@ class SelectFromList(TemplateUserInputWindow):
                 [x[0] for x in fuzzy_matches if x[1] >= 80]
             )
         else:
-            self.checkall_b.Content = "Check All"
-            self.uncheckall_b.Content = "Uncheck All"
-            self.toggleall_b.Content = "Toggle All"
+            self.checkall_b.Content = self.get_locale_string("SelectFromList.CheckAll.Button")
+            self.uncheckall_b.Content = self.get_locale_string("SelectFromList.UncheckAll.Button")
+            self.toggleall_b.Content = self.get_locale_string("SelectFromList.ToggleAll.Button")
             self.list_lb.ItemsSource = ObservableCollection[TemplateListItem](
                 self._get_active_ctx()
             )
@@ -1202,7 +1211,7 @@ class SelectFromList(TemplateUserInputWindow):
     def show(
         cls,
         context,
-        title="User Input",
+        title=None,
         width=DEFAULT_INPUTWINDOW_WIDTH,
         height=DEFAULT_INPUTWINDOW_HEIGHT,
         exitscript=False,
