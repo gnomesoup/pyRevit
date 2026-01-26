@@ -30,6 +30,9 @@ tooltip:
     Make sure your drawings indices consider this
     when filtering for sheet numbers.
 
+    Add 'Naming Format' as a Project Information parameter
+    to define the default Print Sheets naming format for this project. The print sheets Naming Format drop down may be right clicked to copy the name to clipboard.
+
     Shift-Click:
     Shift-Clicking the tool will remove all
     non-printable characters from the sheet numbers,
