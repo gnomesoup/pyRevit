@@ -338,21 +338,21 @@ print('test')");
 
                     Assert.IsNotNull(panelButton.LocalizedTitles, "Localized titles should be present");
                     Assert.IsTrue(panelButton.LocalizedTitles.ContainsKey("en_us"));
-                    Assert.IsTrue(panelButton.LocalizedTitles.ContainsKey("fr"));
-                    Assert.IsTrue(panelButton.LocalizedTitles.ContainsKey("de"));
+                    Assert.IsTrue(panelButton.LocalizedTitles.ContainsKey("fr_fr"));
+                    Assert.IsTrue(panelButton.LocalizedTitles.ContainsKey("de_de"));
 
                     Assert.IsNotNull(panelButton.LocalizedTooltips, "Localized tooltips should be present");
                     Assert.IsTrue(panelButton.LocalizedTooltips.ContainsKey("en_us"));
-                    Assert.IsTrue(panelButton.LocalizedTooltips.ContainsKey("fr"));
-                    Assert.IsTrue(panelButton.LocalizedTooltips.ContainsKey("de"));
+                    Assert.IsTrue(panelButton.LocalizedTooltips.ContainsKey("fr_fr"));
+                    Assert.IsTrue(panelButton.LocalizedTooltips.ContainsKey("de_de"));
 
-                    var frTitle = panelButton.GetLocalizedTitle("fr");
-                    var deTitle = panelButton.GetLocalizedTitle("de");
+                    var frTitle = panelButton.GetLocalizedTitle("fr_fr");
+                    var deTitle = panelButton.GetLocalizedTitle("de_de");
                     Assert.AreEqual("Configuration du Panneau", frTitle);
                     Assert.AreEqual("Panelkonfiguration", deTitle);
 
-                    var frTooltip = panelButton.GetLocalizedTooltip("fr");
-                    var deTooltip = panelButton.GetLocalizedTooltip("de");
+                    var frTooltip = panelButton.GetLocalizedTooltip("fr_fr");
+                    var deTooltip = panelButton.GetLocalizedTooltip("de_de");
                     Assert.IsNotNull(frTooltip);
                     Assert.IsNotNull(deTooltip);
                     StringAssert.Contains("options", frTooltip);
@@ -361,8 +361,8 @@ print('test')");
                     StringAssert.Contains("Debug", deTooltip);
 
                     CollectionAssert.Contains(locales, "en_us");
-                    CollectionAssert.Contains(locales, "fr");
-                    CollectionAssert.Contains(locales, "de");
+                    CollectionAssert.Contains(locales, "fr_fr");
+                    CollectionAssert.Contains(locales, "de_de");
 
                     return;
                 }

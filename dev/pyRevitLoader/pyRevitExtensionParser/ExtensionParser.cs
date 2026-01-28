@@ -1075,7 +1075,7 @@ namespace pyRevitExtensionParser
                     var dictValue = ExtractPythonDictionary(trimmedLine);
                     if (dictValue != null)
                     {
-                        result.LocalizedTitles = dictValue;
+                        result.LocalizedTitles = LocaleSupport.NormalizeLocaleDict(dictValue);
                         // Get default locale value for backward compatibility
                         result.Title = GetLocalizedValue(result.LocalizedTitles);
                     }
@@ -1116,7 +1116,7 @@ namespace pyRevitExtensionParser
                     var dictValue = ExtractPythonDictionary(trimmedLine);
                     if (dictValue != null)
                     {
-                        result.LocalizedTooltips = dictValue;
+                        result.LocalizedTooltips = LocaleSupport.NormalizeLocaleDict(dictValue);
                         // Get default locale value for backward compatibility
                         result.Doc = GetLocalizedValue(result.LocalizedTooltips);
                     }
@@ -1140,7 +1140,7 @@ namespace pyRevitExtensionParser
                     var dictValue = ExtractPythonDictionary(trimmedLine);
                     if (dictValue != null)
                     {
-                        result.LocalizedHelpUrls = dictValue;
+                        result.LocalizedHelpUrls = LocaleSupport.NormalizeLocaleDict(dictValue);
                         // Get default locale value for backward compatibility
                         result.HelpUrl = GetLocalizedValue(result.LocalizedHelpUrls);
                     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using pyRevitLabs.NLog;
 
 namespace pyRevitExtensionParser
 {
@@ -20,6 +21,7 @@ namespace pyRevitExtensionParser
     /// </remarks>
     public class BundleParser
     {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         /// <summary>
         /// Cached parsed bundles with file modification tracking for invalidation.
         /// Key: file path, Value: (ParsedBundle, LastWriteTimeUtc)
@@ -36,24 +38,11 @@ namespace pyRevitExtensionParser
         );
 
         /// <summary>
-        /// Regex pattern for matching valid language codes.
-        /// Matches patterns like: en_us, fr_fr, de_de, ru, es, chinese_s, chinese_t
-        /// </summary>
-        private static readonly Regex _languageCodePattern = new Regex(
-            @"^[a-z]{2,10}(_[a-z]{1,4})?$",
-            RegexOptions.Compiled
-        );
-
-        /// <summary>
-        /// Checks if a potential key looks like a valid language code.
-        /// Language codes follow patterns like: en_us, fr_fr, de_de, ru, chinese_s, chinese_t
+        /// Checks if a potential key is a supported language code or alias.
         /// </summary>
         private static bool IsValidLanguageCode(string key)
         {
-            if (string.IsNullOrEmpty(key) || key.Length > 12 || key.Contains(" "))
-                return false;
-
-            return _languageCodePattern.IsMatch(key);
+            return LocaleSupport.IsSupportedLocale(key);
         }
 
         /// <summary>
@@ -172,7 +161,8 @@ namespace pyRevitExtensionParser
             var lines = File.ReadAllLines(filePath);
             
             // Parser state
-            var state = new ParserState();
+                var state = new ParserState();
+                state.SourcePath = filePath;
 
             for (int i = 0; i < lines.Length; i++)
             {
@@ -733,7 +723,17 @@ namespace pyRevitExtensionParser
         private static void ParseLocalizedText(string line, ParsedBundle parsed, ParserState state)
         {
             var colonIndex = line.IndexOf(':');
-            state.CurrentLanguageKey = line.Substring(0, colonIndex).Trim();
+            var rawLanguageKey = line.Substring(0, colonIndex).Trim();
+            state.CurrentLanguageKey = LocaleSupport.NormalizeLocaleKey(rawLanguageKey);
+            if (state.CurrentLanguageKey == null)
+            {
+                logger.Warn(
+                    "Unsupported locale key '{0}' in bundle.yaml{1}",
+                    rawLanguageKey,
+                    string.IsNullOrEmpty(state.SourcePath) ? "" : string.Format(" ({0})", state.SourcePath)
+                );
+                return;
+            }
             var value = line.Substring(colonIndex + 1).Trim();
 
             if (value == "|-")
@@ -1043,6 +1043,7 @@ namespace pyRevitExtensionParser
         {
             public string CurrentSection { get; set; }
             public string CurrentLanguageKey { get; set; }
+            public string SourcePath { get; set; }
             public bool IsInMultilineValue { get; set; }
             public bool IsLiteralMultiline { get; set; }
             public bool IsFoldedMultiline { get; set; }

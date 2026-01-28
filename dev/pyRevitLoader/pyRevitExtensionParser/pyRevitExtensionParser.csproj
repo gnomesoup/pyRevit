@@ -26,6 +26,7 @@
       <Compile Include="ComboBoxMember.cs" />
       <Compile Include="CommandAvailability.cs" />
       <Compile Include="ComponentIcon.cs" />
+      <Compile Include="LocaleSupport.cs" />
       <Compile Include="ParsedBundle.cs" />
       <Compile Include="ParsedComponent.cs" />
       <Compile Include="ParsedExtension.cs" />
