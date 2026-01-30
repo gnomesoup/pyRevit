@@ -8,7 +8,7 @@ When using the `Combine into one file` option
 in Revit 2022 and earlier,
 the tool adds non-printable character u'\u200e'
 (Left-To-Right Mark) at the start of the sheet names
-to push Revit's interenal printing engine to sort
+to push Revit's internal printing engine to sort
 the sheets correctly per the drawing index order.
 
 Make sure your drawings indices consider this
