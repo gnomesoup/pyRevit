@@ -340,7 +340,11 @@ namespace pyRevitAssemblyBuilder.UIManager
                     break;
 
                 case CommandComponentType.ComboBox:
-                    if (!ItemExistsInPanel(parentPanel, component.DisplayName))
+                    if (ItemExistsInPanel(parentPanel, component.DisplayName))
+                    {
+                        _comboBoxBuilder.UpdateComboBox(component, parentPanel!);
+                    }
+                    else
                     {
                         _comboBoxBuilder.CreateComboBox(component, parentPanel!);
                     }
@@ -351,10 +355,7 @@ namespace pyRevitAssemblyBuilder.UIManager
                     // Try to build using the button builder factory
                     if (_buttonBuilderFactory.HasBuilder(component.Type))
                     {
-                        if (!ItemExistsInPanel(parentPanel, component.DisplayName))
-                        {
-                            _buttonBuilderFactory.TryBuild(component, parentPanel!, tabName, assemblyInfo);
-                        }
+                        _buttonBuilderFactory.TryBuild(component, parentPanel!, tabName, assemblyInfo);
                         // Mark button as touched (whether created new or existing)
                         _ribbonScanner?.MarkElementTouched("button", component.DisplayName, panelName);
                     }
