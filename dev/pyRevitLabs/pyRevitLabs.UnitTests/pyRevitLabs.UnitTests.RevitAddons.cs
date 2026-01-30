@@ -10,9 +10,9 @@ namespace pyRevitLabs.UnitTests.RevitAddons {
         [TestMethod()]
         public void GetRevitAddonsFolder_UserLevel_AllVersions_Test() {
             // Test that user-level path is unchanged for all versions
-            var path2025 = RevitAddons.GetRevitAddonsFolder(2025, allUsers: false);
-            var path2027 = RevitAddons.GetRevitAddonsFolder(2027, allUsers: false);
-            var path2030 = RevitAddons.GetRevitAddonsFolder(2030, allUsers: false);
+            var path2025 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2025, allUsers: false);
+            var path2027 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2027, allUsers: false);
+            var path2030 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2030, allUsers: false);
 
             // All should use AppData
             var expectedBasePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -36,9 +36,9 @@ namespace pyRevitLabs.UnitTests.RevitAddons {
         [TestMethod()]
         public void GetRevitAddonsFolder_AllUsers_Pre2027_Test() {
             // Test that all-users path uses ProgramData for Revit ≤2026
-            var path2024 = RevitAddons.GetRevitAddonsFolder(2024, allUsers: true);
-            var path2025 = RevitAddons.GetRevitAddonsFolder(2025, allUsers: true);
-            var path2026 = RevitAddons.GetRevitAddonsFolder(2026, allUsers: true);
+            var path2024 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2024, allUsers: true);
+            var path2025 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2025, allUsers: true);
+            var path2026 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2026, allUsers: true);
 
             // All should use CommonApplicationData (ProgramData)
             var expectedBasePath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
@@ -59,9 +59,9 @@ namespace pyRevitLabs.UnitTests.RevitAddons {
         [TestMethod()]
         public void GetRevitAddonsFolder_AllUsers_Post2027_Test() {
             // Test that all-users path for Revit ≥2027 ends with proper structure
-            var path2027 = RevitAddons.GetRevitAddonsFolder(2027, allUsers: true);
-            var path2028 = RevitAddons.GetRevitAddonsFolder(2028, allUsers: true);
-            var path2030 = RevitAddons.GetRevitAddonsFolder(2030, allUsers: true);
+            var path2027 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2027, allUsers: true);
+            var path2028 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2028, allUsers: true);
+            var path2030 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2030, allUsers: true);
 
             // Verify path structure - should end with "Addins\<year>" or "Addins/<year>"
             Assert.IsTrue(path2027.EndsWith(@"Addins\2027") || path2027.EndsWith("Addins/2027"),
@@ -81,8 +81,8 @@ namespace pyRevitLabs.UnitTests.RevitAddons {
         [TestMethod()]
         public void GetRevitAddonsFolder_AllUsers_2027Boundary_Test() {
             // Test the exact boundary at year 2027
-            var path2026 = RevitAddons.GetRevitAddonsFolder(2026, allUsers: true);
-            var path2027 = RevitAddons.GetRevitAddonsFolder(2027, allUsers: true);
+            var path2026 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2026, allUsers: true);
+            var path2027 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2027, allUsers: true);
 
             var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
 
@@ -102,8 +102,8 @@ namespace pyRevitLabs.UnitTests.RevitAddons {
             // This is an integration test to ensure the methods work together
             
             // For user-level
-            var userFilePath2027 = RevitAddons.GetRevitAddonsFilePath(2027, "TestAddin", allusers: false);
-            var userFolder2027 = RevitAddons.GetRevitAddonsFolder(2027, allUsers: false);
+            var userFilePath2027 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFilePath(2027, "TestAddin", allusers: false);
+            var userFolder2027 = pyRevitLabs.TargetApps.Revit.RevitAddons.GetRevitAddonsFolder(2027, allUsers: false);
             Assert.IsTrue(userFilePath2027.StartsWith(userFolder2027, StringComparison.OrdinalIgnoreCase),
                 $"User file path should be within user folder: {userFilePath2027} vs {userFolder2027}");
 
