@@ -1161,7 +1161,7 @@ namespace pyRevitExtensionParser
                     }
                     else
                     {
-                        result.Context = ExtractPythonConstantValue(trimmedLine);
+                        result.Context = NormalizeContextString(ExtractPythonConstantValue(trimmedLine));
                     }
                 }
                 else if (trimmedLine.StartsWith("__highlight__"))
@@ -1257,6 +1257,18 @@ namespace pyRevitExtensionParser
                 }
             }
             return null;
+        }
+
+        private static string NormalizeContextString(string context)
+        {
+            if (string.IsNullOrWhiteSpace(context))
+                return context;
+
+            var trimmed = context.Trim();
+            if (trimmed.IndexOf('(') >= 0 || trimmed.IndexOf(')') >= 0)
+                return trimmed;
+
+            return "(" + trimmed + ")";
         }
 
         /// <summary>
