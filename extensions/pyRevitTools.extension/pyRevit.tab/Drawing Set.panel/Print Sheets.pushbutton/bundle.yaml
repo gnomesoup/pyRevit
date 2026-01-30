@@ -15,6 +15,9 @@ title:
   de_de: |-
     Pläne
     drucken
+  pt_br: |-
+    Imprimir
+    Folhas
 tooltip:
   en_us: |-
     Print sheets in order from a sheet index.
@@ -107,3 +110,22 @@ tooltip:
     Wenn Sie mit der Umschalttaste auf das Werkzeug klicken, werden alle
     nicht druckbaren Zeichen aus den Plannummern entfernt. Dies ist für den Fall, dass ein 
     Fehler bei der Ausführung dazu führt, dass diese Zeichen im Plan verbleiben.
+  pt_br: |-
+    Imprima folhas em ordem a partir de um índice de folhas.
+    
+    Nota:
+    Ao usar a opção `Combinar em um arquivo`
+    no Revit 2022 e anteriores,
+    a ferramenta adiciona o caractere não imprimível u'\u200e'
+    (Marca da esquerda para a direita) no início dos nomes das folhas
+    para forçar o mecanismo de impressão interno do Revit a ordenar
+    as folhas corretamente de acordo com a ordem do índice de desenhos.
+    
+    Certifique-se de que seus índices de desenhos considerem isso
+    ao filtrar por números de folhas.
+    
+    Shift-Clique:
+    Shift-Clicar na ferramenta removerá todos
+    os caracteres não imprimíveis dos números das folhas,
+    caso um erro na ferramenta faça com que esses caracteres
+    permaneçam.
