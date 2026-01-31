@@ -303,9 +303,8 @@ class SectionBoxNavigatorForm(forms.WPFWindow):
 
             # Wire up click and hover events
             btn.Click += self.btn_menu_item_click
-            if self.chkPreview.IsChecked:
-                btn.MouseEnter += self.btn_preview_enter
-                btn.MouseLeave += self.btn_preview_leave
+            btn.MouseEnter += self.btn_preview_enter
+            btn.MouseLeave += self.btn_preview_leave
 
             menu.Children.Add(btn)
 
@@ -683,6 +682,15 @@ class SectionBoxNavigatorForm(forms.WPFWindow):
                 top_distance = elevation - info["transformed_max"].Z
                 # Keep same height
                 bottom_distance = (elevation - current_height) - info["transformed_min"].Z
+                # Validate new bottom position won't be invalid
+                new_bottom = info["transformed_min"].Z + bottom_distance
+                new_top = info["transformed_max"].Z + top_distance
+                if new_top <= new_bottom:
+                    if not do_not_apply:
+                        self.show_status_message(
+                            1, self.get_locale_string("WouldCreateInvalidBox"), "error"
+                        )
+                    return None
             else:
                 return None
 
@@ -1356,9 +1364,6 @@ class SectionBoxNavigatorForm(forms.WPFWindow):
             return None
 
     def _normalize_tag(self, tag):
-        if tag is None:
-            return None
-
         # Dynamic Buttons
         if isinstance(tag, dict):
             return {
@@ -1379,8 +1384,6 @@ class SectionBoxNavigatorForm(forms.WPFWindow):
                 "direction": direction,
                 "elevation": None
             }
-
-        return None
 
     # ----------
     # Button Handlers
