@@ -59,6 +59,25 @@ namespace pyRevitExtensionParser
         private static bool _localeInitialized = false;
         
         /// <summary>
+        /// Clears all static caches to force re-parsing of extensions.
+        /// This should be called before reloading pyRevit to ensure newly installed
+        /// or enabled extensions are discovered.
+        /// </summary>
+        public static void ClearAllCaches()
+        {
+            _fileExistsCache.Clear();
+            _directoryFilesCache.Clear();
+            _iconCache.Clear();
+            _cachedExtensionRoots = null;
+            _cachedConfig = null;
+            _pythonScriptCache.Clear();
+            _localeInitialized = false;
+            
+            // Also clear the BundleParser cache
+            BundleParser.BundleYamlParser.ClearCache();
+        }
+        
+        /// <summary>
         /// Initializes the DefaultLocale from user configuration if not already set.
         /// Should be called before parsing extensions to ensure locale-aware localization.
         /// </summary>
@@ -80,11 +99,11 @@ namespace pyRevitExtensionParser
         {
             if (_cachedExtensionRoots == null)
             {
-                var config = GetConfig();
                 // Initialize locale from config before parsing
                 InitializeLocaleFromConfig();
+                // GetExtensionRoots already reads userextensions from config file,
+                // so we don't need to add UserExtensionsList again (which would cause duplicates)
                 _cachedExtensionRoots = GetExtensionRoots();
-                _cachedExtensionRoots.AddRange(config.UserExtensionsList);
             }
             return _cachedExtensionRoots;
         }
@@ -92,6 +111,11 @@ namespace pyRevitExtensionParser
         public static IEnumerable<ParsedExtension> ParseInstalledExtensions()
         {
             var extensionRoots = GetCachedExtensionRoots();
+
+            // Track discovered extension directories to avoid duplicates
+            // This can happen when the same extension is in multiple roots or
+            // when userextensions paths overlap with default paths
+            var discoveredExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var root in extensionRoots)
             {
@@ -101,13 +125,22 @@ namespace pyRevitExtensionParser
                 // Parse .extension directories (UI extensions)
                 foreach (var extDir in Directory.GetDirectories(root, "*.extension"))
                 {
-                    yield return ParseExtension(extDir);
+                    // Use full path for deduplication
+                    var fullPath = Path.GetFullPath(extDir);
+                    if (discoveredExtensions.Add(fullPath))
+                    {
+                        yield return ParseExtension(extDir);
+                    }
                 }
 
                 // Parse .lib directories (Library extensions)
                 foreach (var libDir in Directory.GetDirectories(root, "*.lib"))
                 {
-                    yield return ParseExtension(libDir);
+                    var fullPath = Path.GetFullPath(libDir);
+                    if (discoveredExtensions.Add(fullPath))
+                    {
+                        yield return ParseExtension(libDir);
+                    }
                 }
             }
         }
@@ -356,6 +389,17 @@ namespace pyRevitExtensionParser
             }
 
             roots.Add(defaultPath);
+
+            // Add third-party extensions default directory (%APPDATA%\pyRevit\Extensions)
+            var thirdPartyExtensionsPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "pyRevit",
+                "Extensions");
+            
+            if (Directory.Exists(thirdPartyExtensionsPath))
+            {
+                roots.Add(thirdPartyExtensionsPath);
+            }
 
             var configPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
