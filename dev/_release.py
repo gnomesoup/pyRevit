@@ -98,7 +98,7 @@ def _update_product_data_file(ver, key, cli=False, msi=False):
         else:
             # If no CLI entries exist yet, add after all pyRevit entries
             index = next((i for i, x in enumerate(pdata) if x.product != "pyRevit"), len(pdata))
-        
+
         pdata.insert(
             index,
             PyRevitProduct(
