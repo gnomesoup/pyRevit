@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -42,7 +42,7 @@ namespace pyRevitLabs.Common {
 
         public string DataCachePath {
             get {
-                if (CommonUtils.VerifyPath(_dataSourceCachePath))
+                if (_dataSourceCachePath != null && _dataSourceCachePath != string.Empty)
                     return _dataSourceCachePath;
                 return UserEnv.UserTemp;
             }

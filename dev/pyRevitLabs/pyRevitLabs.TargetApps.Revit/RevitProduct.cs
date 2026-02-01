@@ -137,6 +137,8 @@ namespace pyRevitLabs.TargetApps.Revit {
         }
 
         public static void Update() => _dstore.UpdateData(forceUpdate: true);
+
+        public static void RefreshIfStale() => _dstore.UpdateData(forceUpdate: false);
     }
 
     public class RevitProduct {
