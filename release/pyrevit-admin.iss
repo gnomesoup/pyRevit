@@ -100,7 +100,10 @@ begin
     if ForceDirectories(ProgramDataPyRevit) then
       SaveStringToFile(MarkerPath, 'AllUsers', False)
     else
+    begin
       Log('Could not create ProgramData\pyRevit for install_all_users marker');
+      MsgBox('Warning: Could not create all-users marker file. Config will use per-user scope.', mbInformation, MB_OK);
+    end;
   end;
 end;
 
