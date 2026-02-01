@@ -333,7 +333,7 @@ namespace pyRevitLabs.TargetApps.Revit {
                 revitProduct = LookupRevitProduct(prodInfo.build);
                 if (revitProduct is null)
                 {
-                    logger.Info("Revit version \"{0}\" (build: {1}) not found in pyrevit-hosts.json. Using information from binary file.", regVersion, prodInfo.build);
+                    logger.Info("Revit version \"{0}\" (build: {1}) not found in pyrevit-hosts.json. Creating product entry from binary file information.", regVersion, prodInfo.build);
                 }
                 return revitProduct is null ? new RevitProduct(prodInfo) : revitProduct;
             }
