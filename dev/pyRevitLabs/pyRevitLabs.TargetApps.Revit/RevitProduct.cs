@@ -331,11 +331,13 @@ namespace pyRevitLabs.TargetApps.Revit {
                 var prodInfo = RevitProductData.GetBinaryProductInfo(binaryFilePath);
                 logger.Debug("Read build number \"{0}\" from binary at \"{1}\"", prodInfo.build, binaryFilePath);
                 revitProduct = LookupRevitProduct(prodInfo.build);
+                // If still not found in database, create from binary info
                 if (revitProduct is null)
                 {
-                    logger.Info("Revit version \"{0}\" (build: {1}) not found in pyrevit-hosts.json. Creating product entry from binary file information.", regVersion, prodInfo.build);
+                    logger.Info("Creating Revit product entry from binary file information for version \"{0}\" (build: {1}).", regVersion, prodInfo.build);
+                    revitProduct = new RevitProduct(prodInfo);
                 }
-                return revitProduct is null ? new RevitProduct(prodInfo) : revitProduct;
+                return revitProduct;
             }
             catch (Exception ex)
             {
