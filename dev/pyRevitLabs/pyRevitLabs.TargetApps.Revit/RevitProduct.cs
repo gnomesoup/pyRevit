@@ -343,8 +343,8 @@ namespace pyRevitLabs.TargetApps.Revit {
             }
             catch (Exception ex)
             {
-                logger.Warn("Revit version \"{0}\" not found in pyrevit-hosts.json and failed to read product info from binary at \"{1}\": {2}", 
-                            regVersion, binaryFilePath, ex.Message);
+                logger.Warn(ex, "Revit version \"{0}\" not found in pyrevit-hosts.json and failed to read product info from binary at \"{1}\"", 
+                            regVersion, binaryFilePath);
             }
             return null;
         }
