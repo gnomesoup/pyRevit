@@ -991,8 +991,7 @@ class PrintSheetsWindow(forms.WPFWindow):
                 sheet_set = DB.ViewSet()
                 original_sheetnums = []
                 with revit.Transaction('Fix Sheet Numbers',
-                                       doc=self.selected_doc,
-                                       log_errors=False):
+                                       doc=self.selected_doc):
                     for idx, sheet in enumerate(target_sheets):
                         rvtsheet = sheet.revit_sheet
                         # removing any NPC from previous failed prints
