@@ -148,6 +148,7 @@ Supported bundle types: pushbutton, smartbutton, pulldown, splitbutton, panelbut
 ## Git Workflow
 
 - `master` branch: Releases only
-- `develop` branch: Active development
+- `develop` branch: Active development (main WIP branch)
+- `docs` branch: Documentation website
 - Feature branches from `develop`, PRs back to `develop`
 - Run `git submodule update` after switching branches
