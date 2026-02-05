@@ -255,9 +255,24 @@ namespace pyRevitLabs.TargetApps.Revit {
                         // collect info from reg key
                         var regName = subkey.GetValue("DisplayName") as string;
                         var regVersion = subkey.GetValue("DisplayVersion") as string;
-                        var regInstallPath = (subkey.GetValue("InstallLocation") as string);
-                        if (regInstallPath == null) continue; // Dealing with addins 
-                        int regLangCode = (int)subkey.GetValue("Language");
+                        var regInstallPath = subkey.GetValue("InstallLocation") as string;
+                        if (regInstallPath == null)
+                        {
+                            // Entries without an install location are typically add-ins; skip them.
+                            continue;
+                        }
+                        var languageValue = subkey.GetValue("Language");
+                        int regLangCode;
+                        if (languageValue is int langCode)
+                        {
+                            regLangCode = langCode;
+                        }
+                        else
+                        {
+                            // Missing or invalid language code; skip this entry to avoid runtime casting errors.
+                            logger.Debug("Skipping registered app \"{0}\" because registry key \"Language\" is missing or invalid.", appName);
+                            continue;
+                        }
                         // try to find binary location
                         var binaryFilePath = RevitProductData.GetBinaryLocation(regInstallPath)?.NormalizeAsPath();
                         logger.Debug("Version from registry key: \"{0}\"", regVersion);
